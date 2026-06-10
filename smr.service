@@ -1,0 +1,15 @@
+[Unit]
+Description=Selective Mic Router
+After=pipewire.service wireplumber.service
+Wants=pipewire.service
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/smr run
+# Best-effort restore of the default source if the daemon is stopped/killed.
+ExecStopPost=%h/.local/bin/smr restore
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target

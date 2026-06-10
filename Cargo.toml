@@ -1,0 +1,23 @@
+[package]
+name = "smr"
+version = "0.1.0"
+edition = "2021"
+description = "Selective Mic Router — talk to one app without being heard by the rest"
+license = "MIT"
+
+[[bin]]
+name = "smr"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+anyhow = "1"
+evdev = "0.12"
+ctrlc = { version = "3", features = ["termination"] }
+
+[profile.release]
+lto = true
+strip = true
