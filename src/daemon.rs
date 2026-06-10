@@ -15,7 +15,15 @@ pub struct Daemon {
     node_id: AtomicU32,
     muted: AtomicBool,
     physical: String,
-    keycode: Option<u16>,
+    keys: Vec<u16>,
+}
+
+fn fmt_keys(keys: &[u16]) -> String {
+    if keys.is_empty() {
+        "unset".into()
+    } else {
+        keys.iter().map(u16::to_string).collect::<Vec<_>>().join("+")
+    }
 }
 
 impl Daemon {
@@ -40,13 +48,10 @@ impl Daemon {
         } else {
             "Routing Active"
         };
-        let key = self
-            .keycode
-            .map(|k| k.to_string())
-            .unwrap_or_else(|| "unset".into());
         format!(
-            "state={state} mic={} virtual={SMR_DESCRIPTION} ptt_keycode={key}",
-            self.physical
+            "state={state} mic={} virtual={SMR_DESCRIPTION} ptt_keys={}",
+            self.physical,
+            fmt_keys(&self.keys)
         )
     }
 }
@@ -94,24 +99,23 @@ pub fn run(mut config: Config) -> Result<()> {
         node_id: AtomicU32::new(node_id),
         muted: AtomicBool::new(false),
         physical: physical.clone(),
-        keycode: config.ptt_keycode,
+        keys: config.ptt_keys.clone(),
     });
 
     // 3. Control socket.
     ipc::serve(listener, daemon.clone());
 
     // 4. PTT listeners.
-    match config.ptt_keycode {
-        Some(code) => {
-            let d = daemon.clone();
-            input::spawn_listeners(code, config.ptt_device.clone(), move |pressed| {
-                if let Err(e) = d.set_mute(pressed) {
-                    eprintln!("smr: mute toggle failed: {e}");
-                }
-            })?;
-            println!("smr: push-to-talk armed on keycode {code}");
-        }
-        None => eprintln!("smr: no PTT key set — routing only (run `smr set-key`)"),
+    if config.ptt_keys.is_empty() {
+        eprintln!("smr: no PTT key set — routing only (run `smr set-key`)");
+    } else {
+        let d = daemon.clone();
+        input::spawn_listeners(config.ptt_keys.clone(), config.ptt_device.clone(), move |active| {
+            if let Err(e) = d.set_mute(active) {
+                eprintln!("smr: mute toggle failed: {e}");
+            }
+        })?;
+        println!("smr: push-to-talk armed on {}", fmt_keys(&config.ptt_keys));
     }
 
     println!("smr: ready. {}", daemon.status_line());

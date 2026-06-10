@@ -13,8 +13,10 @@ pub const SMR_DESCRIPTION: &str = "SMR Mic";
 pub struct Config {
     /// `node.name` of the physical capture device to route from.
     pub physical_mic: Option<String>,
-    /// evdev keycode bound to push-to-talk.
-    pub ptt_keycode: Option<u16>,
+    /// evdev keycodes that must *all* be held for push-to-talk (a chord). A
+    /// single entry is a plain single-key bind.
+    #[serde(default)]
+    pub ptt_keys: Vec<u16>,
     /// Optional specific `/dev/input/eventN` to listen on. `None` = all keyboards.
     pub ptt_device: Option<String>,
     /// Whether to set `smr_mic` as the default source on startup.
@@ -32,7 +34,7 @@ impl Default for Config {
     fn default() -> Self {
         Config {
             physical_mic: None,
-            ptt_keycode: None,
+            ptt_keys: Vec::new(),
             ptt_device: None,
             set_default: true,
             previous_default: None,

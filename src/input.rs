@@ -6,8 +6,10 @@
 
 use anyhow::{anyhow, Context, Result};
 use evdev::{Device, EventType};
+use std::collections::BTreeSet;
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 use std::thread;
 
 /// Open the keyboard-capable input devices to listen on. If `only` is set, just
@@ -29,24 +31,41 @@ fn open_devices(only: &Option<String>) -> Result<Vec<(PathBuf, Device)>> {
     Ok(out)
 }
 
-/// Spawn background listeners that invoke `on_edge(pressed)` on each press/release
-/// of `keycode`. Threads are detached and die with the process.
-pub fn spawn_listeners<F>(keycode: u16, device: Option<String>, on_edge: F) -> Result<()>
+/// Spawn background listeners that invoke `on_edge(active)` whenever the chord
+/// state changes — `active` is true only while *every* key in `keys` is held.
+/// A single-element `keys` is a plain single-key bind. Threads are detached and
+/// die with the process.
+pub fn spawn_listeners<F>(keys: Vec<u16>, device: Option<String>, on_edge: F) -> Result<()>
 where
     F: Fn(bool) + Send + Sync + 'static,
 {
+    let keys = Arc::new(keys);
+    let down: Arc<Vec<AtomicBool>> =
+        Arc::new(keys.iter().map(|_| AtomicBool::new(false)).collect());
+    let active = Arc::new(Mutex::new(false));
     let cb = Arc::new(on_edge);
+
     for (path, mut dev) in open_devices(&device)? {
+        let keys = keys.clone();
+        let down = down.clone();
+        let active = active.clone();
         let cb = cb.clone();
         thread::spawn(move || loop {
             match dev.fetch_events() {
                 Ok(events) => {
                     for ev in events {
-                        if ev.event_type() == EventType::KEY && ev.code() == keycode {
-                            match ev.value() {
-                                1 => cb(true),  // press
-                                0 => cb(false), // release
-                                _ => {}         // 2 = autorepeat, ignore
+                        if ev.event_type() != EventType::KEY {
+                            continue;
+                        }
+                        if let Some(i) = keys.iter().position(|k| *k == ev.code()) {
+                            // value: 1 press, 2 autorepeat (still down), 0 release.
+                            down[i].store(ev.value() != 0, Ordering::Relaxed);
+                            let all = down.iter().all(|b| b.load(Ordering::Relaxed));
+                            let mut a = active.lock().unwrap();
+                            if *a != all {
+                                *a = all;
+                                drop(a);
+                                cb(all);
                             }
                         }
                     }
@@ -61,18 +80,20 @@ where
     Ok(())
 }
 
-/// Block until the next key press and return its keycode. Used by `smr set-key`.
-pub fn capture_keycode(device: Option<String>) -> Result<u16> {
+/// Block until the user presses a key (or chord) and releases it, returning the
+/// full set of keys that were held simultaneously. Used by `smr set-key`.
+pub fn capture_combo(device: Option<String>) -> Result<Vec<u16>> {
     use std::sync::mpsc::channel;
-    let (tx, rx) = channel::<u16>();
+    let (tx, rx) = channel::<(u16, i32)>();
     for (_path, mut dev) in open_devices(&device)? {
         let tx = tx.clone();
         thread::spawn(move || loop {
             match dev.fetch_events() {
                 Ok(events) => {
                     for ev in events {
-                        if ev.event_type() == EventType::KEY && ev.value() == 1 {
-                            let _ = tx.send(ev.code());
+                        if ev.event_type() == EventType::KEY
+                            && tx.send((ev.code(), ev.value())).is_err()
+                        {
                             return;
                         }
                     }
@@ -81,5 +102,22 @@ pub fn capture_keycode(device: Option<String>) -> Result<u16> {
             }
         });
     }
-    rx.recv().context("waiting for a key press")
+    drop(tx);
+
+    let mut held = BTreeSet::new();
+    let mut high: BTreeSet<u16> = BTreeSet::new();
+    loop {
+        let (code, value) = rx.recv().context("waiting for a key press")?;
+        if value != 0 {
+            held.insert(code);
+            if held.len() > high.len() {
+                high = held.clone(); // high-water mark of simultaneously-held keys
+            }
+        } else {
+            held.remove(&code);
+            if held.is_empty() && !high.is_empty() {
+                return Ok(high.into_iter().collect());
+            }
+        }
+    }
 }

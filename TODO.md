@@ -43,8 +43,11 @@ Legend: `[x]` done · `[~]` partial / v1-good-enough · `[ ]` not started
 ## FR-5 Global Push-to-Talk Mute
 - [x] Read PTT from evdev globally (no `EVIOCGRAB`, so comms app still sees the key)
 - [x] Hold → mute `smr_mic`; release → unmute (instant, via `wpctl set-mute <id>`)
-- [x] `smr set-key` learns the keycode by capturing the next press
-- [x] Persist keycode (+ optional specific input device) across sessions
+- [x] `smr set-key` learns the bind by capturing the next press/release
+- [x] **Chord bindings** (e.g. Ctrl+F19): mute only while *all* bound keys are held;
+      a single key is just a 1-element chord. (Beyond the PRD's v1 scope — pulled
+      forward to mirror a comms-app PTT chord. Verified live, incl. negative test.)
+- [x] Persist bind (+ optional specific input device) across sessions
 - [ ] Hyprland `bind`/`bindr` fallback path documented (secondary mechanism)
 
 ## FR-6 Control Surface and Status
