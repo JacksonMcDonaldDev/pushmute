@@ -5,7 +5,7 @@ microphone ("PushMute"), routes your physical mic into it, sets it as the system
 default source, and silences it while you hold a global hotkey — so when you hold
 that key to talk in your comms app, your dictation software and everything else go quiet.
 
-See [`PRD.md`](PRD.md) for the full design and [`TODO.md`](TODO.md) for status.
+See [`docs/PRD.md`](docs/PRD.md) for the full design and [`docs/TODO.md`](docs/TODO.md) for status.
 
 ## Build & install
 
