@@ -1,0 +1,97 @@
+[
+  {
+    "id": 39,
+    "type": "PipeWire:Interface:Device",
+    "version": 3,
+    "info": {
+      "props": {
+        "device.api": "alsa",
+        "device.name": "alsa_card.pci-0000_00_1f.3",
+        "media.class": "Audio/Device"
+      }
+    }
+  },
+  {
+    "id": 65,
+    "type": "PipeWire:Interface:Node",
+    "version": 3,
+    "info": {
+      "max-output-ports": 0,
+      "state": "suspended",
+      "props": {
+        "alsa.card_name": "Built-in Audio",
+        "api.alsa.pcm.stream": "playback",
+        "audio.channels": 2,
+        "device.api": "alsa",
+        "media.class": "Audio/Sink",
+        "node.description": "Built-in Audio Analog Stereo",
+        "node.name": "alsa_output.pci-0000_00_1f.3.analog-stereo",
+        "object.serial": 71
+      }
+    }
+  },
+  {
+    "id": 70,
+    "type": "PipeWire:Interface:Node",
+    "version": 3,
+    "info": {
+      "max-input-ports": 0,
+      "max-output-ports": 129,
+      "state": "suspended",
+      "props": {
+        "alsa.card": 0,
+        "alsa.card_name": "Built-in Audio",
+        "api.alsa.pcm.stream": "capture",
+        "audio.channels": 2,
+        "audio.position": "[ FL, FR ]",
+        "device.api": "alsa",
+        "factory.name": "api.alsa.pcm.source",
+        "media.class": "Audio/Source",
+        "node.description": "Built-in Audio Analog Stereo",
+        "node.name": "alsa_input.pci-0000_00_1f.3.analog-stereo",
+        "node.nick": "Built-in Audio",
+        "object.serial": 76,
+        "priority.session": 1909
+      }
+    }
+  },
+  {
+    "id": 84,
+    "type": "PipeWire:Interface:Node",
+    "version": 3,
+    "info": {
+      "max-output-ports": 129,
+      "state": "running",
+      "props": {
+        "alsa.card_name": "Generic USB Mic",
+        "api.alsa.pcm.stream": "capture",
+        "audio.channels": 1,
+        "device.api": "alsa",
+        "device.bus": "usb",
+        "factory.name": "api.alsa.pcm.source",
+        "media.class": "Audio/Source",
+        "node.description": "Generic USB Mic",
+        "node.name": "alsa_input.usb-Generic_USB_Mic-00.mono-fallback",
+        "node.nick": "Generic USB Mic",
+        "object.serial": 90
+      }
+    }
+  },
+  {
+    "id": 102,
+    "type": "PipeWire:Interface:Node",
+    "version": 3,
+    "info": {
+      "max-output-ports": 64,
+      "state": "running",
+      "props": {
+        "factory.name": "support.null-audio-sink",
+        "library.name": "audioconvert/libspa-audioconvert",
+        "media.class": "Audio/Source",
+        "node.description": "PushMute",
+        "node.name": "pushmute",
+        "object.serial": 108
+      }
+    }
+  }
+]
