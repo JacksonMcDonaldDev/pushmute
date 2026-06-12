@@ -1,6 +1,6 @@
 # Selective Mic Router (`pushmute`)
 
-[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
+[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](https://github.com/JacksonMcDonaldDev/pushmute#license)
 ![Platform: Linux](https://img.shields.io/badge/platform-Linux%20%2F%20PipeWire-informational)
 ![Status: pre-release](https://img.shields.io/badge/status-v0.1%20pre--release-orange)
 
