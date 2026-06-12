@@ -1,15 +1,16 @@
 # Deployment & Distribution Plan (`pushmute`)
 
-Status: **planning** — decisions locked via grill session, not yet executed.
+Status: **in progress** — decisions locked via grill session. Rename sweep +
+GitHub repo rename done; packaging + CI/CD remain.
 Branch: `deployment-pipeline`.
 
-This is the renaming + packaging + CI/CD effort that takes `smr` from a personal
+This is the packaging + CI/CD effort that takes `pushmute` from a personal
 build to something other users can install. Pick up from the runbook + build
 checklist at the bottom.
 
 ## App profile (why these choices)
 
-`pushmute` (currently `smr`) is a niche Linux desktop daemon:
+`pushmute` is a niche Linux desktop daemon:
 
 - Rust binary; entire OS-facing surface is **four external binaries** it shells out
   to: `pw-dump` (JSON parsed), `wpctl inspect/set-default/set-mute` (text scraped),
@@ -72,28 +73,11 @@ Audience skews **Arch / Hyprland / waybar** power users.
   LICENSE. Auto-published via `KSXGNU/github-actions-deploy-aur` on tag. `pushmute-git`
   **deferred**.
 
-## Rename blast radius (mechanical, no migration shim)
-
-`smr` → `pushmute` touches:
-
-- `Cargo.toml`: `name`, `[[bin]] name`, `description`.
-- Binary name `smr` → `pushmute`.
-- Config dir `~/.config/smr` → `~/.config/pushmute`.
-- IPC socket `$XDG_RUNTIME_DIR/smr.sock` → `pushmute.sock`.
-- User-visible virtual mic identity: `SMR_NODE_NAME` / "SMR Mic" description →
-  node `pushmute`, description **"PushMute"** (`src/config.rs`, `src/pipewire.rs`).
-- systemd unit `smr.service` → `pushmute.service` (filename + `ExecStart`/`ExecStopPost`).
-- Tray app id (`src/tray.rs`).
-- Docs: `README.md`, `PRD.md`, `TODO.md` references.
-
 ## Manual runbook (only the user can do these — accounts/keys/secrets)
 
 Order matters: plant flags on both registries, then wire secrets so automation takes
 over.
 
-- [x] **Step 0 — Rename the GitHub repo** `mic-router` → `pushmute` (done:
-  `github.com/JacksonMcDonaldDev/pushmute`; local `origin` remote updated). Gates
-  the PKGBUILD release-tarball URL.
 - [ ] **Step 1 — crates.io:** log in with GitHub → API Tokens → new token
   (`publish-new` + `publish-update`). First publish done **locally** to claim the
   name (`cargo login <token>` → `cargo publish`, after the rename). Add the same
@@ -112,7 +96,6 @@ username + email.
 
 ## Build checklist (Claude — code side, once runbook flags are planted)
 
-- [x] Rename sweep `smr` → `pushmute` across the blast radius above.
 - [ ] `pushmute doctor` subcommand + auto-run at `run` startup.
 - [ ] Extract `src/pipewire.rs` scrapers into pure functions; add old+new PipeWire
   fixtures + unit tests.
@@ -128,6 +111,6 @@ username + email.
 
 ## Pick-up point
 
-Runbook Step 0 gates the PKGBUILD. Recommended next action: user knocks out Step 0 +
-grabs the crates.io token and AUR username/email; Claude starts the rename sweep +
-`doctor` + fixtures in parallel (those don't depend on any secret).
+Recommended next action: user knocks out runbook Steps 1–4 (crates.io token, AUR
+registration + CI key, Actions write perms, `cargo install cargo-release`); Claude
+starts `doctor` + pipewire fixtures in parallel (those don't depend on any secret).
