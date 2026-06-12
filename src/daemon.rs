@@ -2,12 +2,20 @@
 //! and restores the graph on exit.
 
 use crate::config::{Config, SMR_DESCRIPTION, SMR_NODE_NAME};
-use crate::{input, ipc, pipewire};
+use crate::{input, ipc, pipewire, tray};
 use anyhow::{anyhow, Result};
 use std::process::Child;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::mpsc;
 use std::sync::Arc;
+
+/// How the daemon should stop once the main thread is unblocked. Config-changing
+/// tray actions write `config.toml` and ask for a `Restart`, which re-execs the
+/// process so the change is applied through the normal startup path.
+pub enum Lifecycle {
+    Quit,
+    Restart,
+}
 
 /// Shared daemon state. Mute is the hot path so the node id and muted flag are
 /// lock-free atomics.
@@ -40,6 +48,20 @@ impl Daemon {
     pub fn toggle(&self) -> Result<()> {
         let next = !self.muted.load(Ordering::Relaxed);
         self.set_mute(next)
+    }
+
+    pub fn is_muted(&self) -> bool {
+        self.muted.load(Ordering::Relaxed)
+    }
+
+    /// The `node.name` of the physical mic being routed (for the tray surface).
+    pub fn physical(&self) -> &str {
+        &self.physical
+    }
+
+    /// The bound PTT chord, rendered for display (e.g. `"56+183"` or `"unset"`).
+    pub fn keys_display(&self) -> String {
+        fmt_keys(&self.keys)
     }
 
     pub fn status_line(&self) -> String {
@@ -118,18 +140,44 @@ pub fn run(mut config: Config) -> Result<()> {
         println!("smr: push-to-talk armed on {}", fmt_keys(&config.ptt_keys));
     }
 
+    // 5. Lifecycle channel — Ctrl-C, the tray's "Quit", and config-change
+    //    "Restart" all funnel here so the main thread owns teardown.
+    let (life_tx, life_rx) = mpsc::channel::<Lifecycle>();
+    let ctrlc_tx = life_tx.clone();
+    ctrlc::set_handler(move || {
+        let _ = ctrlc_tx.send(Lifecycle::Quit);
+    })?;
+
+    // 6. System-tray indicator. Optional: if no StatusNotifier host is present
+    //    the daemon runs headless and the CLI still drives it.
+    if let Some(handle) = tray::spawn(daemon.clone(), life_tx.clone()) {
+        tray::watch_mute(daemon.clone(), handle);
+        println!("smr: tray indicator active");
+    } else {
+        eprintln!("smr: no system tray available — running CLI-only");
+    }
+
     println!("smr: ready. {}", daemon.status_line());
 
-    // 5. Block until a termination signal, then clean up.
-    let (tx, rx) = mpsc::channel();
-    ctrlc::set_handler(move || {
-        let _ = tx.send(());
-    })?;
-    let _ = rx.recv();
-
+    // 7. Block until told to quit or restart, then clean up.
+    let event = life_rx.recv().unwrap_or(Lifecycle::Quit);
     println!("\nsmr: shutting down…");
     cleanup(&mut child, &config);
-    Ok(())
+    match event {
+        Lifecycle::Quit => Ok(()),
+        Lifecycle::Restart => reexec(),
+    }
+}
+
+/// Replace this process with a fresh `smr run`, applying config written to disk
+/// by a tray action. Teardown (default-source restore, loopback kill, socket
+/// removal) must already have run via `cleanup`.
+fn reexec() -> ! {
+    use std::os::unix::process::CommandExt;
+    let exe = std::env::current_exe().unwrap_or_else(|_| "smr".into());
+    let err = std::process::Command::new(exe).arg("run").exec();
+    eprintln!("smr: re-exec failed: {err}");
+    std::process::exit(1);
 }
 
 fn cleanup(child: &mut Child, config: &Config) {

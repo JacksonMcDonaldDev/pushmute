@@ -4,7 +4,9 @@ mod config;
 mod daemon;
 mod input;
 mod ipc;
+mod notify;
 mod pipewire;
+mod tray;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};

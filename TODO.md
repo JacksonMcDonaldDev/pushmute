@@ -56,8 +56,14 @@ Legend: `[x]` done · `[~]` partial / v1-good-enough · `[ ]` not started
       `devices`, `reload`
 - [x] IPC over `$XDG_RUNTIME_DIR/smr.sock` so CLI talks to the running daemon
 - [~] `reload` (re-reads config; live mic-change requires daemon restart in v1)
-- [ ] waybar StatusNotifierItem / custom module (optional, deferred)
-- [ ] `notify-send` desktop notifications on state change / error (optional)
+- [x] StatusNotifierItem tray (`ksni`, blocking+async-io, no tokio): two themed
+      icon states, tooltip, and a menu that *is* the config surface — mute toggle,
+      mic radio submenu, set-default checkbox, PTT rebind, restore, quit. Shows in
+      waybar's tray host. Config-changing items write `config.toml` + re-exec
+      (`Lifecycle::Restart`); left-click is a no-op (ksni 0.3.5 lacks `item_is_menu`,
+      so the menu opens on right-click).
+- [~] `notify-send` notifications: fire on PTT-rebind flow, applied config
+      changes, and errors (by design *not* on routine mute/unmute — that's the icon)
 
 ## FR-7 Auto-Start on Login
 - [x] `smr.service` systemd user unit shipped
