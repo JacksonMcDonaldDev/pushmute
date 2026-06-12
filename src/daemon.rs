@@ -18,10 +18,12 @@ pub enum Lifecycle {
 }
 
 /// Shared daemon state. Mute is the hot path so the node id and muted flag are
-/// lock-free atomics.
+/// lock-free atomics. `enabled` gates the whole PTT mechanism: when off, the mic
+/// is forced open and key events are ignored.
 pub struct Daemon {
     node_id: AtomicU32,
     muted: AtomicBool,
+    enabled: AtomicBool,
     physical: String,
     keys: Vec<u16>,
 }
@@ -54,6 +56,26 @@ impl Daemon {
         self.muted.load(Ordering::Relaxed)
     }
 
+    pub fn is_enabled(&self) -> bool {
+        self.enabled.load(Ordering::Relaxed)
+    }
+
+    /// Turn PTT routing on or off. While disabled the mic stays open and key
+    /// events are ignored, so disabling first flips the gate, then forces the
+    /// source unmuted (covering the case where a key was held at the time).
+    pub fn set_enabled(&self, enabled: bool) -> Result<()> {
+        self.enabled.store(enabled, Ordering::Relaxed);
+        if !enabled {
+            self.set_mute(false)?;
+        }
+        Ok(())
+    }
+
+    pub fn toggle_enabled(&self) -> Result<()> {
+        let next = !self.enabled.load(Ordering::Relaxed);
+        self.set_enabled(next)
+    }
+
     /// The `node.name` of the physical mic being routed (for the tray surface).
     pub fn physical(&self) -> &str {
         &self.physical
@@ -65,7 +87,9 @@ impl Daemon {
     }
 
     pub fn status_line(&self) -> String {
-        let state = if self.muted.load(Ordering::Relaxed) {
+        let state = if !self.enabled.load(Ordering::Relaxed) {
+            "Disabled"
+        } else if self.muted.load(Ordering::Relaxed) {
             "Muted"
         } else {
             "Routing Active"
@@ -120,6 +144,7 @@ pub fn run(mut config: Config) -> Result<()> {
     let daemon = Arc::new(Daemon {
         node_id: AtomicU32::new(node_id),
         muted: AtomicBool::new(false),
+        enabled: AtomicBool::new(true),
         physical: physical.clone(),
         keys: config.ptt_keys.clone(),
     });
@@ -133,6 +158,10 @@ pub fn run(mut config: Config) -> Result<()> {
     } else {
         let d = daemon.clone();
         input::spawn_listeners(config.ptt_keys.clone(), config.ptt_device.clone(), move |active| {
+            // While the app is disabled the mic stays open: ignore PTT edges.
+            if !d.is_enabled() {
+                return;
+            }
             if let Err(e) = d.set_mute(active) {
                 eprintln!("smr: mute toggle failed: {e}");
             }
