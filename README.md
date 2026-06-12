@@ -12,8 +12,7 @@ hotkey. Bind that same key as your comms app's push-to-talk, and holding it tran
 the comms app while your dictation software — and everything else reading the default
 mic — goes quiet.
 
-See [`docs/PRD.md`](docs/PRD.md) for the full design and [`docs/TODO.md`](docs/TODO.md)
-for status.
+See [`docs/design.md`](docs/design.md) for how it works and why it's built this way.
 
 ## Requirements
 
