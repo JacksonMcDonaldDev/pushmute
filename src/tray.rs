@@ -3,10 +3,11 @@
 //! are drawn by the bar's tray host (e.g. waybar); we only publish state over
 //! D-Bus, so no GUI toolkit is pulled in.
 //!
-//! The menu *is* the config surface: mute toggle, mic selection, set-default,
-//! and hotkey rebind. Live actions (mute, restore) act on the running daemon;
-//! config-changing actions write `config.toml` and ask the daemon to re-exec
-//! (`Lifecycle::Restart`) so the change applies through the startup path.
+//! The menu *is* the config surface: enable/disable, mic selection, set-default,
+//! and hotkey rebind. Muting itself is driven only by the hotkey, not the menu.
+//! Live actions (restore) act on the running daemon; config-changing actions
+//! write `config.toml` and ask the daemon to re-exec (`Lifecycle::Restart`) so
+//! the change applies through the startup path.
 
 use crate::config::Config;
 use crate::daemon::{Daemon, Lifecycle};
@@ -54,7 +55,6 @@ impl Tray for SmrTray {
     }
 
     fn menu(&self) -> Vec<MenuItem<Self>> {
-        let muted = self.daemon.is_muted();
         let enabled = self.daemon.is_enabled();
         let mic = self.daemon.physical().to_string();
         let cfg = Config::load().unwrap_or_default();
@@ -75,20 +75,6 @@ impl Tray for SmrTray {
             activate: Box::new(|t: &mut Self| {
                 if let Err(e) = t.daemon.toggle_enabled() {
                     notify::error("Toggle failed", &e.to_string());
-                }
-            }),
-            ..Default::default()
-        };
-
-        // Muting is only meaningful while routing is enabled; when disabled the
-        // mic is forced open and hotkey edges are ignored.
-        let mute_item = CheckmarkItem {
-            label: "Muted".into(),
-            checked: muted,
-            enabled,
-            activate: Box::new(|t: &mut Self| {
-                if let Err(e) = t.daemon.toggle() {
-                    notify::error("Mute failed", &e.to_string());
                 }
             }),
             ..Default::default()
@@ -177,7 +163,6 @@ impl Tray for SmrTray {
             header.into(),
             MenuItem::Separator,
             enabled_item.into(),
-            mute_item.into(),
             MenuItem::Separator,
             mic_menu.into(),
             default_item.into(),

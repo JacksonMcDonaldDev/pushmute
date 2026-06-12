@@ -57,8 +57,9 @@ Legend: `[x]` done · `[~]` partial / v1-good-enough · `[ ]` not started
 - [x] IPC over `$XDG_RUNTIME_DIR/smr.sock` so CLI talks to the running daemon
 - [~] `reload` (re-reads config; live mic-change requires daemon restart in v1)
 - [x] StatusNotifierItem tray (`ksni`, blocking+async-io, no tokio): two themed
-      icon states, tooltip, and a menu that *is* the config surface — mute toggle,
-      mic radio submenu, set-default checkbox, PTT rebind, restore, quit. Shows in
+      icon states, tooltip, and a menu that *is* the config surface — enable/disable
+      toggle, mic radio submenu, set-default checkbox, PTT rebind, restore, quit.
+      Muting is hotkey-only, not exposed in the menu. Shows in
       waybar's tray host. Config-changing items write `config.toml` + re-exec
       (`Lifecycle::Restart`); both left- and right-click open the menu
       (`MENU_ON_ACTIVATE` → `ItemIsMenu=true`).
