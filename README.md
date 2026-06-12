@@ -1,4 +1,6 @@
-# Selective Mic Router (`pushmute`)
+# PushMute
+
+*selective mic router*
 
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](https://github.com/JacksonMcDonaldDev/pushmute#license)
 ![Platform: Linux](https://img.shields.io/badge/platform-Linux%20%2F%20PipeWire-informational)

@@ -1,7 +1,10 @@
 [Unit]
-Description=Selective Mic Router
-After=pipewire.service wireplumber.service
+Description=PushMute (selective mic router)
+# Order after the audio stack and the graphical session so the tray (SNI) has a
+# StatusNotifierWatcher to register against on cold boot.
+After=pipewire.service wireplumber.service graphical-session.target
 Wants=pipewire.service
+PartOf=graphical-session.target
 
 [Service]
 Type=simple
@@ -12,4 +15,4 @@ Restart=on-failure
 RestartSec=2
 
 [Install]
-WantedBy=default.target
+WantedBy=graphical-session.target

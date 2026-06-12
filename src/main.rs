@@ -1,4 +1,4 @@
-//! Selective Mic Router — talk to one app without being heard by the rest.
+//! PushMute — selective mic router: talk to one app without being heard by the rest.
 
 mod config;
 mod daemon;
@@ -13,7 +13,7 @@ use clap::{Parser, Subcommand};
 use config::Config;
 
 #[derive(Parser)]
-#[command(name = "pushmute", version, about = "Selective Mic Router")]
+#[command(name = "pushmute", version, about = "PushMute — selective mic router")]
 struct Cli {
     #[command(subcommand)]
     command: Option<Command>,
