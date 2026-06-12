@@ -5,9 +5,9 @@ Wants=pipewire.service
 
 [Service]
 Type=simple
-ExecStart=%h/.local/bin/smr run
+ExecStart=%h/.local/bin/pushmute run
 # Best-effort restore of the default source if the daemon is stopped/killed.
-ExecStopPost=%h/.local/bin/smr restore
+ExecStopPost=%h/.local/bin/pushmute restore
 Restart=on-failure
 RestartSec=2
 

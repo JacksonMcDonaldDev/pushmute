@@ -8,7 +8,7 @@ use std::process::Command;
 fn send(urgency: &str, summary: &str, body: &str) {
     // `.status()` reaps the child (avoids zombies); notify-send returns promptly.
     let _ = Command::new("notify-send")
-        .args(["-a", "SMR", "-i", "audio-input-microphone", "-u", urgency])
+        .args(["-a", "PushMute", "-i", "audio-input-microphone", "-u", urgency])
         .arg(summary)
         .arg(body)
         .status();

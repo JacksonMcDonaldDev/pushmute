@@ -1,13 +1,13 @@
-//! Persistent configuration under `$XDG_CONFIG_HOME/smr/config.toml`.
+//! Persistent configuration under `$XDG_CONFIG_HOME/pushmute/config.toml`.
 
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
-/// The PipeWire `node.name` of SMR's own virtual source. Fixed so it is stable
+/// The PipeWire `node.name` of PushMute's own virtual source. Fixed so it is stable
 /// across runs and easy to exclude when listing physical mics.
-pub const SMR_NODE_NAME: &str = "smr_mic";
-pub const SMR_DESCRIPTION: &str = "SMR Mic";
+pub const PUSHMUTE_NODE_NAME: &str = "pushmute";
+pub const PUSHMUTE_DESCRIPTION: &str = "PushMute";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
@@ -19,10 +19,10 @@ pub struct Config {
     pub hotkey_keys: Vec<u16>,
     /// Optional specific `/dev/input/eventN` to listen on. `None` = all keyboards.
     pub hotkey_device: Option<String>,
-    /// Whether to set `smr_mic` as the default source on startup.
+    /// Whether to set `pushmute` as the default source on startup.
     #[serde(default = "default_true")]
     pub set_default: bool,
-    /// The default source recorded before SMR changed it, for restoration.
+    /// The default source recorded before PushMute changed it, for restoration.
     pub previous_default: Option<String>,
 }
 
@@ -46,11 +46,11 @@ impl Config {
     pub fn dir() -> PathBuf {
         if let Ok(x) = std::env::var("XDG_CONFIG_HOME") {
             if !x.is_empty() {
-                return PathBuf::from(x).join("smr");
+                return PathBuf::from(x).join("pushmute");
             }
         }
         let home = std::env::var("HOME").unwrap_or_else(|_| ".".into());
-        PathBuf::from(home).join(".config").join("smr")
+        PathBuf::from(home).join(".config").join("pushmute")
     }
 
     pub fn path() -> PathBuf {

@@ -13,7 +13,7 @@ use clap::{Parser, Subcommand};
 use config::Config;
 
 #[derive(Parser)]
-#[command(name = "smr", version, about = "Selective Mic Router")]
+#[command(name = "pushmute", version, about = "Selective Mic Router")]
 struct Cli {
     #[command(subcommand)]
     command: Option<Command>,
@@ -45,7 +45,7 @@ enum Command {
     Unmute,
     /// Toggle mute.
     Toggle,
-    /// Restore the default source recorded before SMR changed it.
+    /// Restore the default source recorded before PushMute changed it.
     Restore,
     /// Reload config (currently: validate; live mic change needs a restart).
     Reload,
@@ -53,7 +53,7 @@ enum Command {
 
 fn main() {
     if let Err(e) = real_main() {
-        eprintln!("smr: error: {e:#}");
+        eprintln!("pushmute: error: {e:#}");
         std::process::exit(1);
     }
 }
@@ -96,7 +96,7 @@ fn real_main() -> Result<()> {
 
 fn devices() -> Result<()> {
     let cfg = Config::load()?;
-    println!("Capture devices (use the node.name with `smr set-mic`):");
+    println!("Capture devices (use the node.name with `pushmute set-mic`):");
     for d in pipewire::list_capture_devices()? {
         let marker = if cfg.physical_mic.as_deref() == Some(&d.name) {
             " *"
@@ -106,7 +106,7 @@ fn devices() -> Result<()> {
         println!("{marker} [{:>3}] {}", d.id, d.description);
         println!("        {}", d.name);
     }
-    println!("\nInput devices (for `smr set-key --device`):");
+    println!("\nInput devices (for `pushmute set-key --device`):");
     for (path, dev) in evdev::enumerate() {
         if dev.supported_events().contains(evdev::EventType::KEY) {
             println!("   {}  {}", path.display(), dev.name().unwrap_or("?"));

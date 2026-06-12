@@ -1,6 +1,6 @@
-# SMR v1 — TODO
+# PushMute v1 — TODO
 
-Tracks the path from PRD → working v1. The strategy: a **Rust daemon (`smr`)** that
+Tracks the path from PRD → working v1. The strategy: a **Rust daemon (`pushmute`)** that
 orchestrates the already-proven CLI primitives (`pw-loopback`, `wpctl`, `pw-dump`) and
 reads PTT directly from **evdev**. This is the PRD's "faster-prototype path" implemented
 in the target language — it gets v1 on its feet without first fighting the libpipewire
@@ -15,35 +15,35 @@ Legend: `[x]` done · `[~]` partial / v1-good-enough · `[ ]` not started
 - [x] Cargo project + module layout (`config`, `pipewire`, `input`, `daemon`, `ipc`)
 
 ## FR-1 Virtual Microphone Provisioning
-- [x] Create `smr_mic` Audio/Source via `pw-loopback` child on startup
-- [x] Present as a normal mic (verified: `media.class=Audio/Source`, description "SMR Mic")
+- [x] Create `pushmute` Audio/Source via `pw-loopback` child on startup
+- [x] Present as a normal mic (verified: `media.class=Audio/Source`, description "PushMute")
 - [x] Tear down cleanly on graceful exit (kill child)
 - [~] Self-heal if the loopback child dies mid-session (v2: registry-event reconnect)
 
 ## FR-2 Default Source Management
 - [x] Record previous default source before changing it
-- [x] Set `smr_mic` as default on startup (config-gated via `set_default`)
+- [x] Set `pushmute` as default on startup (config-gated via `set_default`)
 - [x] Restore previous default on graceful exit
-- [x] `smr restore` subcommand — reset default without a full run
+- [x] `pushmute restore` subcommand — reset default without a full run
 - [~] First-run confirm prompt / "don't ask again" (config flag exists; interactive
       prompt not yet wired — defaults to auto-apply)
-- [ ] Detect stale `smr_mic`-as-default from a previous crash and self-heal on startup
+- [ ] Detect stale `pushmute`-as-default from a previous crash and self-heal on startup
 
 ## FR-3 Physical Mic Selection and Capture
-- [x] Enumerate capture devices (`smr devices`), excluding `smr_mic`
-- [x] `smr set-mic <node.name>` persists selection
+- [x] Enumerate capture devices (`pushmute devices`), excluding `pushmute`
+- [x] `pushmute set-mic <node.name>` persists selection
 - [x] Route without exclusive grab (pw-loopback is shared by default)
 - [~] Pin route by node.name (survives same-name re-enumeration; serial-based pin is v2)
 
 ## FR-4 Audio Routing
-- [x] Loopback link physical mic → `smr_mic` inside the graph
+- [x] Loopback link physical mic → `pushmute` inside the graph
 - [x] Stability-first: default quantum (no aggressive low-latency tuning)
 - [~] Match device sample rate/format (relies on PipeWire negotiation; no forced rate yet)
 
 ## FR-5 Global Push-to-Talk Mute
 - [x] Read PTT from evdev globally (no `EVIOCGRAB`, so comms app still sees the key)
-- [x] Hold → mute `smr_mic`; release → unmute (instant, via `wpctl set-mute <id>`)
-- [x] `smr set-key` learns the bind by capturing the next press/release
+- [x] Hold → mute `pushmute`; release → unmute (instant, via `wpctl set-mute <id>`)
+- [x] `pushmute set-key` learns the bind by capturing the next press/release
 - [x] **Chord bindings** (e.g. Ctrl+F19): mute only while *all* bound keys are held;
       a single key is just a 1-element chord. (Beyond the PRD's v1 scope — pulled
       forward to mirror a comms-app PTT chord. Verified live, incl. negative test.)
@@ -54,7 +54,7 @@ Legend: `[x]` done · `[~]` partial / v1-good-enough · `[ ]` not started
 - [x] Daemon + foreground flag
 - [x] CLI: `status`, `mute --hold`/`unmute`, `toggle`, `set-mic`, `set-key`, `restore`,
       `devices`, `reload`
-- [x] IPC over `$XDG_RUNTIME_DIR/smr.sock` so CLI talks to the running daemon
+- [x] IPC over `$XDG_RUNTIME_DIR/pushmute.sock` so CLI talks to the running daemon
 - [~] `reload` (re-reads config; live mic-change requires daemon restart in v1)
 - [x] StatusNotifierItem tray (`ksni`, blocking+async-io, no tokio): two themed
       icon states, tooltip, and a menu that *is* the config surface — enable/disable
@@ -67,7 +67,7 @@ Legend: `[x]` done · `[~]` partial / v1-good-enough · `[ ]` not started
       changes, and errors (by design *not* on routine mute/unmute — that's the icon)
 
 ## FR-7 Auto-Start on Login
-- [x] `smr.service` systemd user unit shipped
+- [x] `pushmute.service` systemd user unit shipped
 - [ ] Document Hyprland `exec-once` alternative (README)
 
 ## Non-Functional

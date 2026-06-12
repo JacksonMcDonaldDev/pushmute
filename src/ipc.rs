@@ -1,6 +1,6 @@
-//! Control socket so the `smr` CLI can drive a running daemon.
+//! Control socket so the `pushmute` CLI can drive a running daemon.
 //!
-//! Line protocol over a Unix socket at `$XDG_RUNTIME_DIR/smr.sock`: the client
+//! Line protocol over a Unix socket at `$XDG_RUNTIME_DIR/pushmute.sock`: the client
 //! writes one command line, the daemon writes one response line. The socket also
 //! serves as the single-instance guard.
 
@@ -14,7 +14,7 @@ use std::thread;
 
 pub fn socket_path() -> PathBuf {
     let dir = std::env::var("XDG_RUNTIME_DIR").unwrap_or_else(|_| "/tmp".into());
-    PathBuf::from(dir).join("smr.sock")
+    PathBuf::from(dir).join("pushmute.sock")
 }
 
 /// Bind the control socket, failing if another daemon already owns it. Removes a
@@ -24,7 +24,7 @@ pub fn bind() -> Result<UnixListener> {
     if path.exists() {
         // If something answers, another daemon is live.
         if UnixStream::connect(&path).is_ok() {
-            return Err(anyhow!("another smr daemon is already running"));
+            return Err(anyhow!("another pushmute daemon is already running"));
         }
         let _ = std::fs::remove_file(&path);
     }

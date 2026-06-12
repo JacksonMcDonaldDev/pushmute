@@ -23,22 +23,22 @@ use std::time::Duration;
 const ICON_ACTIVE: &str = "audio-input-microphone";
 const ICON_MUTED: &str = "microphone-sensitivity-muted";
 
-pub struct SmrTray {
+pub struct PushMuteTray {
     daemon: Arc<Daemon>,
     tx: Sender<Lifecycle>,
 }
 
-impl Tray for SmrTray {
+impl Tray for PushMuteTray {
     // Left click opens the menu instead of firing an activate action; the menu is
     // our only control surface, so there's no separate primary action to run.
     const MENU_ON_ACTIVATE: bool = true;
 
     fn id(&self) -> String {
-        "smr".into()
+        "pushmute".into()
     }
 
     fn title(&self) -> String {
-        "SMR".into()
+        "PushMute".into()
     }
 
     fn icon_name(&self) -> String {
@@ -49,7 +49,7 @@ impl Tray for SmrTray {
         ksni::ToolTip {
             icon_name: self.icon_name(),
             icon_pixmap: Vec::new(),
-            title: format!("SMR — {}", self.daemon.state_label()),
+            title: format!("PushMute — {}", self.daemon.state_label()),
             description: format!(
                 "Mic: {}\nHotkey: {}",
                 self.daemon.physical(),
@@ -187,11 +187,11 @@ impl Tray for SmrTray {
 
 /// Publish the tray. Returns `None` (and logs) if no StatusNotifier host is
 /// reachable, so the daemon can still run CLI-only.
-pub fn spawn(daemon: Arc<Daemon>, tx: Sender<Lifecycle>) -> Option<Handle<SmrTray>> {
-    match (SmrTray { daemon, tx }).spawn() {
+pub fn spawn(daemon: Arc<Daemon>, tx: Sender<Lifecycle>) -> Option<Handle<PushMuteTray>> {
+    match (PushMuteTray { daemon, tx }).spawn() {
         Ok(handle) => Some(handle),
         Err(e) => {
-            eprintln!("smr: tray unavailable: {e}");
+            eprintln!("pushmute: tray unavailable: {e}");
             None
         }
     }
@@ -201,7 +201,7 @@ pub fn spawn(daemon: Arc<Daemon>, tx: Sender<Lifecycle>) -> Option<Handle<SmrTra
 /// CLI socket). ksni already re-renders after a menu click; this covers the rest
 /// by polling the atomic — a cheap load every 60 ms, a sustained hotkey is caught
 /// well within human perception.
-pub fn watch_mute(daemon: Arc<Daemon>, handle: Handle<SmrTray>) {
+pub fn watch_mute(daemon: Arc<Daemon>, handle: Handle<PushMuteTray>) {
     std::thread::spawn(move || {
         let mut last = daemon.is_muted();
         loop {

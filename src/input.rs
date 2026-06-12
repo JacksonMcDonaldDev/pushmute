@@ -71,7 +71,7 @@ where
                     }
                 }
                 Err(e) => {
-                    eprintln!("smr: input device {} closed: {e}", path.display());
+                    eprintln!("pushmute: input device {} closed: {e}", path.display());
                     break;
                 }
             }
@@ -81,7 +81,7 @@ where
 }
 
 /// Block until the user presses a key (or chord) and releases it, returning the
-/// full set of keys that were held simultaneously. Used by `smr set-key`.
+/// full set of keys that were held simultaneously. Used by `pushmute set-key`.
 pub fn capture_combo(device: Option<String>) -> Result<Vec<u16>> {
     use std::sync::mpsc::channel;
     let (tx, rx) = channel::<(u16, i32)>();

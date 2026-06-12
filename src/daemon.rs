@@ -1,7 +1,7 @@
 //! The long-running router: provisions the virtual source, wires the hotkey to mute,
 //! and restores the graph on exit.
 
-use crate::config::{Config, SMR_DESCRIPTION, SMR_NODE_NAME};
+use crate::config::{Config, PUSHMUTE_DESCRIPTION, PUSHMUTE_NODE_NAME};
 use crate::{input, ipc, pipewire, tray};
 use anyhow::{anyhow, Result};
 use std::process::Child;
@@ -150,7 +150,7 @@ impl Daemon {
 
     pub fn status_line(&self) -> String {
         format!(
-            "state={} mic={} virtual={SMR_DESCRIPTION} hotkey_keys={}",
+            "state={} mic={} virtual={PUSHMUTE_DESCRIPTION} hotkey_keys={}",
             self.state_label(),
             self.physical,
             fmt_keys(&self.keys)
@@ -163,7 +163,7 @@ pub fn run(mut config: Config) -> Result<()> {
     let physical = config
         .physical_mic
         .clone()
-        .ok_or_else(|| anyhow!("no physical mic set — run `smr set-mic <name>` (`smr devices` to list)"))?;
+        .ok_or_else(|| anyhow!("no physical mic set — run `pushmute set-mic <name>` (`pushmute devices` to list)"))?;
 
     // Single-instance guard + control socket.
     let listener = ipc::bind()?;
@@ -171,7 +171,7 @@ pub fn run(mut config: Config) -> Result<()> {
     // Record the pre-existing default source so we can restore it on exit.
     if config.set_default {
         if let Some(cur) = pipewire::current_default_source()? {
-            if cur != SMR_NODE_NAME {
+            if cur != PUSHMUTE_NODE_NAME {
                 config.previous_default = Some(cur);
                 config.save()?;
             }
@@ -179,9 +179,9 @@ pub fn run(mut config: Config) -> Result<()> {
     }
 
     // 1. Provision the virtual source.
-    println!("smr: creating virtual source `{SMR_DESCRIPTION}` ← {physical}");
+    println!("pushmute: creating virtual source `{PUSHMUTE_DESCRIPTION}` ← {physical}");
     let mut child: Child = pipewire::spawn_loopback(&physical)?;
-    let node_id = match pipewire::wait_for_node(SMR_NODE_NAME, 30) {
+    let node_id = match pipewire::wait_for_node(PUSHMUTE_NODE_NAME, 30) {
         Ok(id) => id,
         Err(e) => {
             let _ = child.kill();
@@ -191,9 +191,9 @@ pub fn run(mut config: Config) -> Result<()> {
 
     // 2. Set default source.
     if config.set_default {
-        match pipewire::set_default_source(SMR_NODE_NAME) {
-            Ok(()) => println!("smr: default source → {SMR_DESCRIPTION}"),
-            Err(e) => eprintln!("smr: could not set default source: {e}"),
+        match pipewire::set_default_source(PUSHMUTE_NODE_NAME) {
+            Ok(()) => println!("pushmute: default source → {PUSHMUTE_DESCRIPTION}"),
+            Err(e) => eprintln!("pushmute: could not set default source: {e}"),
         }
     }
 
@@ -210,7 +210,7 @@ pub fn run(mut config: Config) -> Result<()> {
 
     // 4. Hotkey listeners.
     if config.hotkey_keys.is_empty() {
-        eprintln!("smr: no hotkey set — routing only (run `smr set-key`)");
+        eprintln!("pushmute: no hotkey set — routing only (run `pushmute set-key`)");
     } else {
         let d = daemon.clone();
         input::spawn_listeners(config.hotkey_keys.clone(), config.hotkey_device.clone(), move |active| {
@@ -219,10 +219,10 @@ pub fn run(mut config: Config) -> Result<()> {
                 return;
             }
             if let Err(e) = d.set_mute(active) {
-                eprintln!("smr: mute toggle failed: {e}");
+                eprintln!("pushmute: mute toggle failed: {e}");
             }
         })?;
-        println!("smr: hotkey armed on {}", fmt_key_names(&config.hotkey_keys));
+        println!("pushmute: hotkey armed on {}", fmt_key_names(&config.hotkey_keys));
     }
 
     // 5. Lifecycle channel — Ctrl-C, the tray's "Quit", and config-change
@@ -237,16 +237,16 @@ pub fn run(mut config: Config) -> Result<()> {
     //    the daemon runs headless and the CLI still drives it.
     if let Some(handle) = tray::spawn(daemon.clone(), life_tx.clone()) {
         tray::watch_mute(daemon.clone(), handle);
-        println!("smr: tray indicator active");
+        println!("pushmute: tray indicator active");
     } else {
-        eprintln!("smr: no system tray available — running CLI-only");
+        eprintln!("pushmute: no system tray available — running CLI-only");
     }
 
-    println!("smr: ready. {}", daemon.status_line());
+    println!("pushmute: ready. {}", daemon.status_line());
 
     // 7. Block until told to quit or restart, then clean up.
     let event = life_rx.recv().unwrap_or(Lifecycle::Quit);
-    println!("\nsmr: shutting down…");
+    println!("\npushmute: shutting down…");
     cleanup(&mut child, &config);
     match event {
         Lifecycle::Quit => Ok(()),
@@ -254,14 +254,14 @@ pub fn run(mut config: Config) -> Result<()> {
     }
 }
 
-/// Replace this process with a fresh `smr run`, applying config written to disk
+/// Replace this process with a fresh `pushmute run`, applying config written to disk
 /// by a tray action. Teardown (default-source restore, loopback kill, socket
 /// removal) must already have run via `cleanup`.
 fn reexec() -> ! {
     use std::os::unix::process::CommandExt;
-    let exe = std::env::current_exe().unwrap_or_else(|_| "smr".into());
+    let exe = std::env::current_exe().unwrap_or_else(|_| "pushmute".into());
     let err = std::process::Command::new(exe).arg("run").exec();
-    eprintln!("smr: re-exec failed: {err}");
+    eprintln!("pushmute: re-exec failed: {err}");
     std::process::exit(1);
 }
 
@@ -269,18 +269,18 @@ fn cleanup(child: &mut Child, config: &Config) {
     // Restore the previous default source, best effort.
     if let Some(prev) = &config.previous_default {
         match pipewire::set_default_source(prev) {
-            Ok(()) => println!("smr: default source restored → {prev}"),
-            Err(e) => eprintln!("smr: could not restore default source: {e}"),
+            Ok(()) => println!("pushmute: default source restored → {prev}"),
+            Err(e) => eprintln!("pushmute: could not restore default source: {e}"),
         }
     }
     // Tear down the virtual source.
     let _ = child.kill();
     let _ = child.wait();
     let _ = std::fs::remove_file(ipc::socket_path());
-    println!("smr: virtual source removed. bye.");
+    println!("pushmute: virtual source removed. bye.");
 }
 
-/// `smr restore` — reset the default source to the recorded prior device,
+/// `pushmute restore` — reset the default source to the recorded prior device,
 /// without a full daemon run.
 pub fn restore(config: &Config) -> Result<()> {
     match &config.previous_default {

@@ -1,12 +1,12 @@
 [package]
-name = "smr"
+name = "pushmute"
 version = "0.1.0"
 edition = "2021"
-description = "Selective Mic Router — talk to one app without being heard by the rest"
+description = "Push-to-mute for PipeWire — route your mic to one app and silence it with a global hotkey"
 license = "MIT"
 
 [[bin]]
-name = "smr"
+name = "pushmute"
 path = "src/main.rs"
 
 [dependencies]

@@ -4,7 +4,7 @@
 //! introspection) and `wpctl` (default-source + mute). Swapping this module for
 //! native libpipewire bindings later does not change the rest of the daemon.
 
-use crate::config::{SMR_DESCRIPTION, SMR_NODE_NAME};
+use crate::config::{PUSHMUTE_DESCRIPTION, PUSHMUTE_NODE_NAME};
 use anyhow::{anyhow, Context, Result};
 use serde_json::Value;
 use std::process::{Child, Command, Stdio};
@@ -31,7 +31,7 @@ pub struct CaptureDevice {
     pub description: String,
 }
 
-/// Enumerate `Audio/Source` nodes, excluding SMR's own virtual source.
+/// Enumerate `Audio/Source` nodes, excluding PushMute's own virtual source.
 pub fn list_capture_devices() -> Result<Vec<CaptureDevice>> {
     let dump = run("pw-dump", &[])?;
     let v: Value = serde_json::from_str(&dump)?;
@@ -49,7 +49,7 @@ pub fn list_capture_devices() -> Result<Vec<CaptureDevice>> {
             continue;
         }
         let name = props.get("node.name").and_then(Value::as_str).unwrap_or("");
-        if name.is_empty() || name == SMR_NODE_NAME {
+        if name.is_empty() || name == PUSHMUTE_NODE_NAME {
             continue;
         }
         let description = props
@@ -113,7 +113,7 @@ pub fn set_mute_id(id: u32, mute: bool) -> Result<()> {
     Ok(())
 }
 
-/// Spawn `pw-loopback` to create the `smr_mic` virtual source, fed by `physical`.
+/// Spawn `pw-loopback` to create the `pushmute` virtual source, fed by `physical`.
 ///
 /// The capture side targets the physical mic (shared, no exclusive grab); the
 /// playback side is exposed as an `Audio/Source` that all default-source clients
@@ -121,7 +121,7 @@ pub fn set_mute_id(id: u32, mute: bool) -> Result<()> {
 pub fn spawn_loopback(physical: &str) -> Result<Child> {
     let capture_props = format!("node.target={physical} node.passive=true");
     let playback_props = format!(
-        "media.class=Audio/Source node.name={SMR_NODE_NAME} node.description=\"{SMR_DESCRIPTION}\""
+        "media.class=Audio/Source node.name={PUSHMUTE_NODE_NAME} node.description=\"{PUSHMUTE_DESCRIPTION}\""
     );
     let child = Command::new("pw-loopback")
         .args([
@@ -139,7 +139,7 @@ pub fn spawn_loopback(physical: &str) -> Result<Child> {
     Ok(child)
 }
 
-/// Poll the graph until `smr_mic` appears, returning its node id.
+/// Poll the graph until `pushmute` appears, returning its node id.
 pub fn wait_for_node(name: &str, attempts: u32) -> Result<u32> {
     for _ in 0..attempts {
         if let Some(id) = node_id_by_name(name)? {
