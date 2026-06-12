@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=PushMute
+GenericName=Selective Mic Router
+Comment=Talk to one app without being heard by the rest
+Exec=pushmute run
+Icon=pushmute
+Terminal=false
+# The single-instance guard makes this safe to use as both a launcher entry and
+# an XDG autostart entry (install.sh drops a copy in ~/.config/autostart).
+StartupNotify=false
+Categories=Audio;AudioVideo;Utility;
+Keywords=microphone;mic;mute;push-to-talk;pipewire;

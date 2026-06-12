@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-label="PushMute">
+  <title>PushMute</title>
+  <!-- Rounded app background -->
+  <rect x="4" y="4" width="120" height="120" rx="26" fill="#2d6cdf"/>
+  <g fill="none" stroke="#ffffff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Microphone capsule -->
+    <rect x="50" y="28" width="28" height="46" rx="14" fill="#ffffff" stroke="none"/>
+    <!-- Cradle arc -->
+    <path d="M40 60 a24 24 0 0 0 48 0"/>
+    <!-- Stem and base -->
+    <line x1="64" y1="84" x2="64" y2="98"/>
+    <line x1="48" y1="98" x2="80" y2="98"/>
+  </g>
+  <!-- Mute slash -->
+  <line x1="34" y1="30" x2="94" y2="100" stroke="#ff5252" stroke-width="9" stroke-linecap="round"/>
+</svg>
