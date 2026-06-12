@@ -97,6 +97,9 @@ username + email.
 ## Build checklist (Claude — code side, once runbook flags are planted)
 
 - [ ] `pushmute doctor` subcommand + auto-run at `run` startup.
+  (Dev-box baseline 2026-06-11: `pw-dump`, `wpctl`, `pw-loopback` all present in
+  `/usr/bin`; Rust 1.96. So doctor's happy path is locally verifiable — the
+  missing-binary failure path will need simulating, e.g. a doctored `PATH`.)
 - [ ] Extract `src/pipewire.rs` scrapers into pure functions; add old+new PipeWire
   fixtures + unit tests.
 - [ ] `.github/workflows/ci.yml` (fmt/clippy/build/test on PR + main).
@@ -104,6 +107,9 @@ username + email.
   AUR deploy action).
 - [ ] `cargo-release` config (`Cargo.toml` `[workspace.metadata.release]` or
   `release.toml`) + `CHANGELOG.md`.
+- [ ] Add a top-level `LICENSE` (MIT) file. **Gap surfaced 2026-06-11:** `Cargo.toml`
+  declares `license = "MIT"` but no `LICENSE` file exists, and both the PKGBUILD and
+  `install.sh` are specified to install it. Must land before those two items.
 - [ ] `packaging/PKGBUILD` + `.SRCINFO` (source = GitHub release tarball).
 - [ ] `install.sh` (non-Arch: compile → `~/.local/bin` → systemd unit → input-group
   check → `doctor`).
