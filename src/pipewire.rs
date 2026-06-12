@@ -107,7 +107,7 @@ pub fn set_default_source(node_name: &str) -> Result<()> {
     Ok(())
 }
 
-/// Mute/unmute a node by object id. This is the hot path on every PTT edge.
+/// Mute/unmute a node by object id. This is the hot path on every hotkey edge.
 pub fn set_mute_id(id: u32, mute: bool) -> Result<()> {
     run("wpctl", &["set-mute", &id.to_string(), if mute { "1" } else { "0" }])?;
     Ok(())

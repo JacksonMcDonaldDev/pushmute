@@ -4,7 +4,7 @@
 //! D-Bus, so no GUI toolkit is pulled in.
 //!
 //! The menu *is* the config surface: mute toggle, mic selection, set-default,
-//! and PTT rebind. Live actions (mute, restore) act on the running daemon;
+//! and hotkey rebind. Live actions (mute, restore) act on the running daemon;
 //! config-changing actions write `config.toml` and ask the daemon to re-exec
 //! (`Lifecycle::Restart`) so the change applies through the startup path.
 
@@ -51,7 +51,7 @@ impl Tray for SmrTray {
             icon_pixmap: Vec::new(),
             title: format!("SMR — {state}"),
             description: format!(
-                "Mic: {}\nPTT: {}",
+                "Mic: {}\nHotkey: {}",
                 self.daemon.physical(),
                 self.daemon.keys_display()
             ),
@@ -132,15 +132,15 @@ impl Tray for SmrTray {
         };
 
         let tx_rebind = self.tx.clone();
-        let rebind_device = cfg.ptt_device.clone();
+        let rebind_device = cfg.hotkey_device.clone();
         let rebind_item = StandardItem {
-            label: "Rebind PTT…".into(),
+            label: "Rebind hotkey…".into(),
             activate: Box::new(move |_t: &mut Self| {
                 // capture_combo blocks until a chord is released, so it must not
                 // run on the tray's D-Bus thread.
                 let tx = tx_rebind.clone();
                 let device = rebind_device.clone();
-                std::thread::spawn(move || rebind_ptt(device, tx));
+                std::thread::spawn(move || rebind_hotkey(device, tx));
             }),
             ..Default::default()
         };
@@ -191,9 +191,9 @@ pub fn spawn(daemon: Arc<Daemon>, tx: Sender<Lifecycle>) -> Option<Handle<SmrTra
     }
 }
 
-/// Repaint the icon when the mute state changes from outside the menu (PTT, the
+/// Repaint the icon when the mute state changes from outside the menu (hotkey, the
 /// CLI socket). ksni already re-renders after a menu click; this covers the rest
-/// by polling the atomic — a cheap load every 60 ms, sustained PTT is caught
+/// by polling the atomic — a cheap load every 60 ms, a sustained hotkey is caught
 /// well within human perception.
 pub fn watch_mute(daemon: Arc<Daemon>, handle: Handle<SmrTray>) {
     std::thread::spawn(move || {
@@ -235,8 +235,8 @@ fn restore_default() -> Result<Option<String>> {
     }
 }
 
-fn rebind_ptt(device: Option<String>, tx: Sender<Lifecycle>) {
-    notify::info("Rebind push-to-talk", "Press your key or chord, then release…");
+fn rebind_hotkey(device: Option<String>, tx: Sender<Lifecycle>) {
+    notify::info("Rebind hotkey", "Press your key or chord, then release…");
     let keys = match input::capture_combo(device.clone()) {
         Ok(k) => k,
         Err(e) => {
@@ -247,13 +247,13 @@ fn rebind_ptt(device: Option<String>, tx: Sender<Lifecycle>) {
     let shown = keys.iter().map(u16::to_string).collect::<Vec<_>>().join("+");
     let result = (|| -> Result<()> {
         let mut cfg = Config::load()?;
-        cfg.ptt_keys = keys;
-        cfg.ptt_device = device;
+        cfg.hotkey_keys = keys;
+        cfg.hotkey_device = device;
         cfg.save()
     })();
     match result {
         Ok(()) => {
-            notify::info("Push-to-talk bound", &format!("evdev {shown}"));
+            notify::info("Hotkey bound", &format!("evdev {shown}"));
             let _ = tx.send(Lifecycle::Restart);
         }
         Err(e) => notify::error("Rebind failed", &e.to_string()),

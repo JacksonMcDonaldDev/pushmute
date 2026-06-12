@@ -29,7 +29,7 @@ enum Command {
     Devices,
     /// Set the physical mic to route from (by node.name).
     SetMic { name: String },
-    /// Bind the push-to-talk key (or chord) by capturing the next press.
+    /// Bind the hotkey (or chord) by capturing the next press.
     SetKey {
         /// Optional specific /dev/input/eventN to capture from.
         #[arg(long)]
@@ -85,8 +85,8 @@ fn real_main() -> Result<()> {
         Command::Reload => {
             let cfg = Config::load()?;
             println!(
-                "config OK: mic={:?} ptt_keys={:?} set_default={}",
-                cfg.physical_mic, cfg.ptt_keys, cfg.set_default
+                "config OK: mic={:?} hotkey_keys={:?} set_default={}",
+                cfg.physical_mic, cfg.hotkey_keys, cfg.set_default
             );
             println!("(note: changing the routed mic requires restarting the daemon)");
             Ok(())
@@ -134,13 +134,13 @@ fn set_mic(name: String) -> Result<()> {
 }
 
 fn set_key(device: Option<String>) -> Result<()> {
-    println!("Press the key (or chord) you want for push-to-talk, then release…");
+    println!("Press the key (or chord) you want for the hotkey, then release…");
     let keys = input::capture_combo(device.clone())?;
     let mut cfg = Config::load()?;
-    cfg.ptt_keys = keys.clone();
-    cfg.ptt_device = device;
+    cfg.hotkey_keys = keys.clone();
+    cfg.hotkey_device = device;
     cfg.save()?;
     let shown = keys.iter().map(u16::to_string).collect::<Vec<_>>().join("+");
-    println!("push-to-talk bound → evdev keycodes {shown}");
+    println!("hotkey bound → evdev keycodes {shown}");
     Ok(())
 }

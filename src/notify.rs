@@ -1,6 +1,6 @@
 //! Desktop notifications via `notify-send` (best-effort; absence is non-fatal).
 //!
-//! Policy: notify only on the PTT-rebind flow, applied config changes, and
+//! Policy: notify only on the hotkey-rebind flow, applied config changes, and
 //! errors — never on routine mute/unmute, which is the tray icon's job.
 
 use std::process::Command;

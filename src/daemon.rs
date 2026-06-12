@@ -1,4 +1,4 @@
-//! The long-running router: provisions the virtual source, wires PTT to mute,
+//! The long-running router: provisions the virtual source, wires the hotkey to mute,
 //! and restores the graph on exit.
 
 use crate::config::{Config, SMR_DESCRIPTION, SMR_NODE_NAME};
@@ -18,7 +18,7 @@ pub enum Lifecycle {
 }
 
 /// Shared daemon state. Mute is the hot path so the node id and muted flag are
-/// lock-free atomics. `enabled` gates the whole PTT mechanism: when off, the mic
+/// lock-free atomics. `enabled` gates the whole hotkey mechanism: when off, the mic
 /// is forced open and key events are ignored.
 pub struct Daemon {
     node_id: AtomicU32,
@@ -60,7 +60,7 @@ impl Daemon {
         self.enabled.load(Ordering::Relaxed)
     }
 
-    /// Turn PTT routing on or off. While disabled the mic stays open and key
+    /// Turn hotkey routing on or off. While disabled the mic stays open and key
     /// events are ignored, so disabling first flips the gate, then forces the
     /// source unmuted (covering the case where a key was held at the time).
     pub fn set_enabled(&self, enabled: bool) -> Result<()> {
@@ -81,7 +81,7 @@ impl Daemon {
         &self.physical
     }
 
-    /// The bound PTT chord, rendered for display (e.g. `"56+183"` or `"unset"`).
+    /// The bound hotkey chord, rendered for display (e.g. `"56+183"` or `"unset"`).
     pub fn keys_display(&self) -> String {
         fmt_keys(&self.keys)
     }
@@ -95,7 +95,7 @@ impl Daemon {
             "Routing Active"
         };
         format!(
-            "state={state} mic={} virtual={SMR_DESCRIPTION} ptt_keys={}",
+            "state={state} mic={} virtual={SMR_DESCRIPTION} hotkey_keys={}",
             self.physical,
             fmt_keys(&self.keys)
         )
@@ -146,19 +146,19 @@ pub fn run(mut config: Config) -> Result<()> {
         muted: AtomicBool::new(false),
         enabled: AtomicBool::new(true),
         physical: physical.clone(),
-        keys: config.ptt_keys.clone(),
+        keys: config.hotkey_keys.clone(),
     });
 
     // 3. Control socket.
     ipc::serve(listener, daemon.clone());
 
-    // 4. PTT listeners.
-    if config.ptt_keys.is_empty() {
-        eprintln!("smr: no PTT key set — routing only (run `smr set-key`)");
+    // 4. Hotkey listeners.
+    if config.hotkey_keys.is_empty() {
+        eprintln!("smr: no hotkey set — routing only (run `smr set-key`)");
     } else {
         let d = daemon.clone();
-        input::spawn_listeners(config.ptt_keys.clone(), config.ptt_device.clone(), move |active| {
-            // While the app is disabled the mic stays open: ignore PTT edges.
+        input::spawn_listeners(config.hotkey_keys.clone(), config.hotkey_device.clone(), move |active| {
+            // While the app is disabled the mic stays open: ignore hotkey edges.
             if !d.is_enabled() {
                 return;
             }
@@ -166,7 +166,7 @@ pub fn run(mut config: Config) -> Result<()> {
                 eprintln!("smr: mute toggle failed: {e}");
             }
         })?;
-        println!("smr: push-to-talk armed on {}", fmt_keys(&config.ptt_keys));
+        println!("smr: hotkey armed on {}", fmt_keys(&config.hotkey_keys));
     }
 
     // 5. Lifecycle channel — Ctrl-C, the tray's "Quit", and config-change

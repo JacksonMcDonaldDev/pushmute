@@ -1,8 +1,8 @@
-//! Global push-to-talk via evdev.
+//! Global hotkey via evdev.
 //!
 //! Reads `/dev/input/event*` directly (works under any compositor, no root
 //! needed because the user is in the `input` group). We never `EVIOCGRAB`, so
-//! the comms app still sees the same key for its own PTT.
+//! the comms app still sees the same key for its own push-to-talk.
 
 use anyhow::{anyhow, Context, Result};
 use evdev::{Device, EventType};
