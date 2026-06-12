@@ -29,6 +29,10 @@ pub struct SmrTray {
 }
 
 impl Tray for SmrTray {
+    // Left click opens the menu instead of firing an activate action; the menu is
+    // our only control surface, so there's no separate primary action to run.
+    const MENU_ON_ACTIVATE: bool = true;
+
     fn id(&self) -> String {
         "smr".into()
     }
@@ -91,7 +95,7 @@ impl Tray for SmrTray {
         let names_for_select = names.clone();
         let tx_mic = self.tx.clone();
         let mic_menu = SubMenu {
-            label: "Microphone".into(),
+            label: "Microphone Input Source".into(),
             submenu: vec![MenuItem::RadioGroup(RadioGroup {
                 selected,
                 select: Box::new(move |_t: &mut Self, i: usize| {
