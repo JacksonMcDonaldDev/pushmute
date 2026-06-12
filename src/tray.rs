@@ -28,6 +28,11 @@ pub struct SmrTray {
 }
 
 impl Tray for SmrTray {
+    // Make a left-click open the menu: the host reads ItemIsMenu=true and shows
+    // the context menu instead of calling Activate (waybar/GNOME/KDE all honor
+    // this). ksni exposes the flag as this associated const.
+    const MENU_ON_ACTIVATE: bool = true;
+
     fn id(&self) -> String {
         "smr".into()
     }

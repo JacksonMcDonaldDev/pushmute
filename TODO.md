@@ -60,8 +60,8 @@ Legend: `[x]` done · `[~]` partial / v1-good-enough · `[ ]` not started
       icon states, tooltip, and a menu that *is* the config surface — mute toggle,
       mic radio submenu, set-default checkbox, PTT rebind, restore, quit. Shows in
       waybar's tray host. Config-changing items write `config.toml` + re-exec
-      (`Lifecycle::Restart`); left-click is a no-op (ksni 0.3.5 lacks `item_is_menu`,
-      so the menu opens on right-click).
+      (`Lifecycle::Restart`); both left- and right-click open the menu
+      (`MENU_ON_ACTIVATE` → `ItemIsMenu=true`).
 - [~] `notify-send` notifications: fire on PTT-rebind flow, applied config
       changes, and errors (by design *not* on routine mute/unmute — that's the icon)
 
