@@ -5,9 +5,9 @@
 //!
 //! The menu *is* the config surface: enable/disable, mic selection, set-default,
 //! and hotkey rebind. Muting itself is driven only by the hotkey, not the menu.
-//! Live actions (restore) act on the running daemon; config-changing actions
-//! write `config.toml` and ask the daemon to re-exec (`Lifecycle::Restart`) so
-//! the change applies through the startup path.
+//! Config-changing actions write `config.toml` and ask the daemon to re-exec
+//! (`Lifecycle::Restart`) so the change applies through the startup path;
+//! unchecking set-default restores the prior device on that teardown.
 
 use crate::config::Config;
 use crate::daemon::{Daemon, Lifecycle};
@@ -115,10 +115,20 @@ impl Tray for SmrTray {
         let cur_default = cfg.set_default;
         let tx_def = self.tx.clone();
         let default_item = CheckmarkItem {
-            label: "Set as default source".into(),
+            label: "Set push-mute as system default source".into(),
             checked: cur_default,
             activate: Box::new(move |_t: &mut Self| match set_default_flag(!cur_default) {
                 Ok(()) => {
+                    // Unchecking hands the default source back: the daemon restart
+                    // restores the prior device on teardown, so tell the user.
+                    if cur_default {
+                        match Config::load().ok().and_then(|c| c.previous_default) {
+                            Some(prev) => {
+                                notify::info("Default source", &format!("Restored → {prev}"))
+                            }
+                            None => notify::info("Default source", "Restored default source"),
+                        }
+                    }
                     let _ = tx_def.send(Lifecycle::Restart);
                 }
                 Err(e) => notify::error("Config error", &e.to_string()),
@@ -147,16 +157,6 @@ impl Tray for SmrTray {
             ..Default::default()
         };
 
-        let restore_item = StandardItem {
-            label: "Restore default source".into(),
-            activate: Box::new(|_t: &mut Self| match restore_default() {
-                Ok(Some(prev)) => notify::info("Default source", &format!("Restored → {prev}")),
-                Ok(None) => notify::info("Default source", "No previous default recorded"),
-                Err(e) => notify::error("Restore failed", &e.to_string()),
-            }),
-            ..Default::default()
-        };
-
         let tx_quit = self.tx.clone();
         let quit_item = StandardItem {
             label: "Quit".into(),
@@ -176,7 +176,6 @@ impl Tray for SmrTray {
             hotkey_hint.into(),
             rebind_item.into(),
             MenuItem::Separator,
-            restore_item.into(),
             quit_item.into(),
         ]
     }
@@ -225,17 +224,6 @@ fn set_default_flag(value: bool) -> Result<()> {
     let mut cfg = Config::load()?;
     cfg.set_default = value;
     cfg.save()
-}
-
-fn restore_default() -> Result<Option<String>> {
-    let cfg = Config::load()?;
-    match cfg.previous_default {
-        Some(prev) => {
-            pipewire::set_default_source(&prev)?;
-            Ok(Some(prev))
-        }
-        None => Ok(None),
-    }
 }
 
 fn rebind_hotkey(device: Option<String>, tx: Sender<Lifecycle>) {
