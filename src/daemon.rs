@@ -86,16 +86,21 @@ impl Daemon {
         fmt_keys(&self.keys)
     }
 
-    pub fn status_line(&self) -> String {
-        let state = if !self.enabled.load(Ordering::Relaxed) {
+    /// Human-readable routing state for the tray surface and status line.
+    pub fn state_label(&self) -> &'static str {
+        if !self.enabled.load(Ordering::Relaxed) {
             "Disabled"
         } else if self.muted.load(Ordering::Relaxed) {
             "Muted"
         } else {
             "Routing Active"
-        };
+        }
+    }
+
+    pub fn status_line(&self) -> String {
         format!(
-            "state={state} mic={} virtual={SMR_DESCRIPTION} hotkey_keys={}",
+            "state={} mic={} virtual={SMR_DESCRIPTION} hotkey_keys={}",
+            self.state_label(),
             self.physical,
             fmt_keys(&self.keys)
         )

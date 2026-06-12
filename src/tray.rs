@@ -41,15 +41,10 @@ impl Tray for SmrTray {
     }
 
     fn tool_tip(&self) -> ksni::ToolTip {
-        let state = if self.daemon.is_muted() {
-            "Muted"
-        } else {
-            "Routing Active"
-        };
         ksni::ToolTip {
             icon_name: self.icon_name(),
             icon_pixmap: Vec::new(),
-            title: format!("SMR — {state}"),
+            title: format!("SMR — {}", self.daemon.state_label()),
             description: format!(
                 "Mic: {}\nHotkey: {}",
                 self.daemon.physical(),
@@ -60,23 +55,37 @@ impl Tray for SmrTray {
 
     fn menu(&self) -> Vec<MenuItem<Self>> {
         let muted = self.daemon.is_muted();
+        let enabled = self.daemon.is_enabled();
         let mic = self.daemon.physical().to_string();
         let cfg = Config::load().unwrap_or_default();
         let devices = pipewire::list_capture_devices().unwrap_or_default();
         let names: Vec<String> = devices.iter().map(|d| d.name.clone()).collect();
         let selected = names.iter().position(|n| *n == mic).unwrap_or(usize::MAX);
 
-        // Disabled status line: state dot + current mic.
-        let dot = if muted { "● Muted" } else { "● Routing Active" };
+        // Non-clickable status line: state dot + current mic.
         let header = StandardItem {
-            label: format!("{dot} — {mic}"),
+            label: format!("● {} — {mic}", self.daemon.state_label()),
             enabled: false,
             ..Default::default()
         };
 
+        let enabled_item = CheckmarkItem {
+            label: "Enabled".into(),
+            checked: enabled,
+            activate: Box::new(|t: &mut Self| {
+                if let Err(e) = t.daemon.toggle_enabled() {
+                    notify::error("Toggle failed", &e.to_string());
+                }
+            }),
+            ..Default::default()
+        };
+
+        // Muting is only meaningful while routing is enabled; when disabled the
+        // mic is forced open and hotkey edges are ignored.
         let mute_item = CheckmarkItem {
             label: "Muted".into(),
             checked: muted,
+            enabled,
             activate: Box::new(|t: &mut Self| {
                 if let Err(e) = t.daemon.toggle() {
                     notify::error("Mute failed", &e.to_string());
@@ -167,6 +176,7 @@ impl Tray for SmrTray {
         vec![
             header.into(),
             MenuItem::Separator,
+            enabled_item.into(),
             mute_item.into(),
             MenuItem::Separator,
             mic_menu.into(),
