@@ -126,6 +126,13 @@ impl Tray for SmrTray {
             ..Default::default()
         };
 
+        // Non-clickable hint showing the currently bound chord by name.
+        let hotkey_hint = StandardItem {
+            label: format!("Hotkey: {}", self.daemon.keys_display()),
+            enabled: false,
+            ..Default::default()
+        };
+
         let tx_rebind = self.tx.clone();
         let rebind_device = cfg.hotkey_device.clone();
         let rebind_item = StandardItem {
@@ -166,6 +173,7 @@ impl Tray for SmrTray {
             MenuItem::Separator,
             mic_menu.into(),
             default_item.into(),
+            hotkey_hint.into(),
             rebind_item.into(),
             MenuItem::Separator,
             restore_item.into(),
@@ -239,7 +247,7 @@ fn rebind_hotkey(device: Option<String>, tx: Sender<Lifecycle>) {
             return;
         }
     };
-    let shown = keys.iter().map(u16::to_string).collect::<Vec<_>>().join("+");
+    let shown = crate::daemon::fmt_key_names(&keys);
     let result = (|| -> Result<()> {
         let mut cfg = Config::load()?;
         cfg.hotkey_keys = keys;
@@ -248,7 +256,7 @@ fn rebind_hotkey(device: Option<String>, tx: Sender<Lifecycle>) {
     })();
     match result {
         Ok(()) => {
-            notify::info("Hotkey bound", &format!("evdev {shown}"));
+            notify::info("Hotkey bound", &shown);
             let _ = tx.send(Lifecycle::Restart);
         }
         Err(e) => notify::error("Rebind failed", &e.to_string()),

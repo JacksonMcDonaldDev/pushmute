@@ -28,11 +28,61 @@ pub struct Daemon {
     keys: Vec<u16>,
 }
 
+/// Raw, machine-friendly rendering of a chord (e.g. `"56+183"`). Used by the
+/// status line, which is parsed/grepped rather than read by a person.
 fn fmt_keys(keys: &[u16]) -> String {
     if keys.is_empty() {
         "unset".into()
     } else {
         keys.iter().map(u16::to_string).collect::<Vec<_>>().join("+")
+    }
+}
+
+/// Human-readable rendering of a chord (e.g. `"Left Ctrl + F13"`). Used by the
+/// tray and notifications, where a bare keycode means nothing to the user.
+pub fn fmt_key_names(keys: &[u16]) -> String {
+    if keys.is_empty() {
+        "unset".into()
+    } else {
+        keys.iter().map(|&c| key_name(c)).collect::<Vec<_>>().join(" + ")
+    }
+}
+
+/// Translate a single evdev keycode into a friendly name, falling back to the
+/// raw number for codes the `evdev` crate doesn't recognise.
+fn key_name(code: u16) -> String {
+    let raw = format!("{:?}", evdev::Key::new(code));
+    let Some(rest) = raw.strip_prefix("KEY_") else {
+        return code.to_string();
+    };
+    // Side-prefixed modifiers (LEFTCTRL → "Left Ctrl"). Guard on the suffix so
+    // we don't mangle the arrow keys (KEY_LEFT/KEY_RIGHT) or KEY_RIGHTBRACE.
+    let is_mod = |s: &str| matches!(s, "CTRL" | "SHIFT" | "ALT" | "META");
+    let (side, token) = if rest.strip_prefix("LEFT").is_some_and(is_mod) {
+        ("Left ", &rest[4..])
+    } else if rest.strip_prefix("RIGHT").is_some_and(is_mod) {
+        ("Right ", &rest[5..])
+    } else {
+        ("", rest)
+    };
+    let name = if token == "META" {
+        "Super".to_string()
+    } else {
+        title_case(token)
+    };
+    format!("{side}{name}")
+}
+
+/// Uppercase the first character and lowercase the rest (`"SPACE"` → `"Space"`,
+/// `"F13"` → `"F13"`, `"A"` → `"A"`).
+fn title_case(s: &str) -> String {
+    let mut chars = s.chars();
+    match chars.next() {
+        Some(first) => first
+            .to_uppercase()
+            .chain(chars.flat_map(char::to_lowercase))
+            .collect(),
+        None => String::new(),
     }
 }
 
@@ -81,9 +131,10 @@ impl Daemon {
         &self.physical
     }
 
-    /// The bound hotkey chord, rendered for display (e.g. `"56+183"` or `"unset"`).
+    /// The bound hotkey chord, rendered for display (e.g. `"Left Ctrl + F13"`
+    /// or `"unset"`).
     pub fn keys_display(&self) -> String {
-        fmt_keys(&self.keys)
+        fmt_key_names(&self.keys)
     }
 
     /// Human-readable routing state for the tray surface and status line.
@@ -171,7 +222,7 @@ pub fn run(mut config: Config) -> Result<()> {
                 eprintln!("smr: mute toggle failed: {e}");
             }
         })?;
-        println!("smr: hotkey armed on {}", fmt_keys(&config.hotkey_keys));
+        println!("smr: hotkey armed on {}", fmt_key_names(&config.hotkey_keys));
     }
 
     // 5. Lifecycle channel — Ctrl-C, the tray's "Quit", and config-change
@@ -239,5 +290,26 @@ pub fn restore(config: &Config) -> Result<()> {
             Ok(())
         }
         None => Err(anyhow!("no previous default source recorded")),
+    }
+}
+
+#[cfg(test)]
+mod key_name_tests {
+    use super::*;
+
+    #[test]
+    fn renders_friendly_names() {
+        assert_eq!(key_name(29), "Left Ctrl"); // KEY_LEFTCTRL
+        assert_eq!(key_name(183), "F13"); // KEY_F13
+        assert_eq!(key_name(30), "A"); // KEY_A
+        assert_eq!(key_name(57), "Space"); // KEY_SPACE
+        assert_eq!(key_name(125), "Left Super"); // KEY_LEFTMETA
+        assert_eq!(key_name(105), "Left"); // KEY_LEFT (arrow), not mistaken for a modifier
+    }
+
+    #[test]
+    fn renders_chords_and_empty() {
+        assert_eq!(fmt_key_names(&[29, 183]), "Left Ctrl + F13");
+        assert_eq!(fmt_key_names(&[]), "unset");
     }
 }
