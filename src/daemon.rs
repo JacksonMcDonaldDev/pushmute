@@ -2,7 +2,7 @@
 //! and restores the graph on exit.
 
 use crate::config::{Config, PUSHMUTE_DESCRIPTION, PUSHMUTE_NODE_NAME};
-use crate::{input, ipc, pipewire, tray};
+use crate::{doctor, input, ipc, pipewire, tray};
 use anyhow::{anyhow, Result};
 use std::process::Child;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
@@ -176,6 +176,10 @@ pub fn run(mut config: Config) -> Result<()> {
             return Ok(());
         }
     };
+
+    // Critical environment checks (PATH tools, parseable graph, `input` group)
+    // abort here before we provision anything; tray-watcher warnings are printed.
+    doctor::preflight()?;
 
     let physical = config.physical_mic.clone().ok_or_else(|| {
         anyhow!("no physical mic set — run `pushmute set-mic <name>` (`pushmute devices` to list)")

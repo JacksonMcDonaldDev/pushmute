@@ -41,6 +41,28 @@ pub fn node_id_by_name(name: &str) -> Result<Option<u32>> {
     parse_node_id_by_name(&run("pw-dump", &[])?, name)
 }
 
+/// Confirm `pw-dump` runs and emits JSON of the expected shape. Used by `doctor`
+/// and the `run` preflight; reuses the same pure parser as the live path so a
+/// schema drift that would break routing is caught here first.
+pub fn probe_pw_dump() -> Result<()> {
+    parse_capture_devices(&run("pw-dump", &[])?).map(|_| ())
+}
+
+/// Confirm `wpctl` is alive and its output parseable. A *missing* default source
+/// is benign (the daemon handles `None`), so `inspect` failing falls back to
+/// `wpctl status` for a liveness check — only a wholly unresponsive `wpctl` fails.
+pub fn probe_wpctl() -> Result<()> {
+    match run("wpctl", &["inspect", "@DEFAULT_SOURCE@"]) {
+        Ok(out) => {
+            let _ = parse_default_source(&out);
+            Ok(())
+        }
+        Err(_) => run("wpctl", &["status"])
+            .map(|_| ())
+            .context("wpctl is not responding"),
+    }
+}
+
 /// The `node.name` of the current default source, if any.
 pub fn current_default_source() -> Result<Option<String>> {
     let out = match run("wpctl", &["inspect", "@DEFAULT_SOURCE@"]) {

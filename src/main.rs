@@ -2,6 +2,7 @@
 
 mod config;
 mod daemon;
+mod doctor;
 mod input;
 mod ipc;
 mod notify;
@@ -49,6 +50,8 @@ enum Command {
     Restore,
     /// Reload config (currently: validate; live mic change needs a restart).
     Reload,
+    /// Check the environment and report problems (PASS/WARN/FAIL).
+    Doctor,
 }
 
 fn main() {
@@ -91,6 +94,7 @@ fn real_main() -> Result<()> {
             println!("(note: changing the routed mic requires restarting the daemon)");
             Ok(())
         }
+        Command::Doctor => doctor::doctor(),
     }
 }
 
