@@ -1,0 +1,16 @@
+pkgbase = pushmute
+	pkgdesc = Push-to-mute for PipeWire — route your mic to one app and silence it with a global hotkey
+	pkgver = 0.1.0
+	pkgrel = 1
+	url = https://github.com/JacksonMcDonaldDev/pushmute
+	install = pushmute.install
+	arch = x86_64
+	license = MIT
+	license = Apache-2.0
+	makedepends = cargo
+	depends = pipewire
+	depends = wireplumber
+	source = pushmute-0.1.0.tar.gz::https://github.com/JacksonMcDonaldDev/pushmute/archive/refs/tags/v0.1.0.tar.gz
+	sha256sums = SKIP
+
+pkgname = pushmute

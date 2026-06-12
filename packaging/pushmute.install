@@ -1,0 +1,25 @@
+post_install() {
+	cat <<'EOF'
+==> PushMute installed. It does not auto-start (Arch convention).
+
+    To start it and enable it on login:
+        systemctl --user enable --now pushmute
+
+    The push-to-mute hotkey reads /dev/input, which needs the 'input' group:
+        sudo usermod -aG input "$USER"    # then log out and back in
+
+    Configure with 'pushmute devices' + 'pushmute set-mic <name>' and
+    'pushmute set-key'. Run 'pushmute doctor' to check your environment.
+
+    Before removing the package, disable the service first so it can restore
+    your original default source:
+        systemctl --user disable --now pushmute
+EOF
+}
+
+post_upgrade() {
+	cat <<'EOF'
+==> PushMute upgraded. If the service is running, restart it:
+        systemctl --user restart pushmute
+EOF
+}
