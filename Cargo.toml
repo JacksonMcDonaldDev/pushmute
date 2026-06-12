@@ -3,7 +3,7 @@ name = "pushmute"
 version = "0.1.0"
 edition = "2021"
 description = "Push-to-mute for PipeWire — route your mic to one app and silence it with a global hotkey"
-license = "MIT"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/JacksonMcDonaldDev/pushmute"
 
 [[bin]]
