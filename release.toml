@@ -1,0 +1,28 @@
+# cargo-release configuration.
+#
+# A release cut is `cargo release <level>` (e.g. `cargo release minor`): bump the
+# version in Cargo.toml, rewrite the CHANGELOG "Unreleased" section into a dated
+# release, commit, tag `vX.Y.Z`, and push. The pushed tag is what triggers the CD
+# workflow (GitHub Release + AUR publish).
+#
+# Publishing pushmute to crates.io is disabled by design — no install path uses
+# `cargo install`, so the only artifacts are the git tag + GitHub tarball.
+
+publish = false
+push = true
+allow-branch = ["main"]
+
+tag-name = "v{{version}}"
+tag-message = "Release {{crate_name}} {{version}}"
+pre-release-commit-message = "Release {{version}}"
+
+# Keep a Changelog upkeep: stamp the Unreleased section with the version + date,
+# fix up its compare link, and seed a fresh empty Unreleased section above it.
+# Relies on the `<!-- next-header -->` / `<!-- next-url -->` markers in CHANGELOG.md.
+pre-release-replacements = [
+  { file = "CHANGELOG.md", search = "Unreleased", replace = "{{version}}" },
+  { file = "CHANGELOG.md", search = "\\.\\.\\.HEAD", replace = "...{{tag_name}}", exactly = 1 },
+  { file = "CHANGELOG.md", search = "ReleaseDate", replace = "{{date}}" },
+  { file = "CHANGELOG.md", search = "<!-- next-header -->", replace = "<!-- next-header -->\n\n## [Unreleased] - ReleaseDate", exactly = 1 },
+  { file = "CHANGELOG.md", search = "<!-- next-url -->", replace = "<!-- next-url -->\n[Unreleased]: {{repository}}/compare/{{tag_name}}...HEAD", exactly = 1 },
+]
