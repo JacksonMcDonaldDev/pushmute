@@ -60,8 +60,7 @@ impl Config {
     pub fn load() -> Result<Config> {
         let path = Self::path();
         match std::fs::read_to_string(&path) {
-            Ok(s) => toml::from_str(&s)
-                .with_context(|| format!("parsing {}", path.display())),
+            Ok(s) => toml::from_str(&s).with_context(|| format!("parsing {}", path.display())),
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Config::default()),
             Err(e) => Err(e).with_context(|| format!("reading {}", path.display())),
         }
@@ -69,8 +68,7 @@ impl Config {
 
     pub fn save(&self) -> Result<()> {
         let dir = Self::dir();
-        std::fs::create_dir_all(&dir)
-            .with_context(|| format!("creating {}", dir.display()))?;
+        std::fs::create_dir_all(&dir).with_context(|| format!("creating {}", dir.display()))?;
         let s = toml::to_string_pretty(self)?;
         std::fs::write(Self::path(), s)
             .with_context(|| format!("writing {}", Self::path().display()))?;

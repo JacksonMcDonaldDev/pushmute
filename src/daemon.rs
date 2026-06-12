@@ -34,7 +34,10 @@ fn fmt_keys(keys: &[u16]) -> String {
     if keys.is_empty() {
         "unset".into()
     } else {
-        keys.iter().map(u16::to_string).collect::<Vec<_>>().join("+")
+        keys.iter()
+            .map(u16::to_string)
+            .collect::<Vec<_>>()
+            .join("+")
     }
 }
 
@@ -44,7 +47,10 @@ pub fn fmt_key_names(keys: &[u16]) -> String {
     if keys.is_empty() {
         "unset".into()
     } else {
-        keys.iter().map(|&c| key_name(c)).collect::<Vec<_>>().join(" + ")
+        keys.iter()
+            .map(|&c| key_name(c))
+            .collect::<Vec<_>>()
+            .join(" + ")
     }
 }
 
@@ -160,13 +166,20 @@ impl Daemon {
 
 /// Run the daemon to completion (blocks until SIGINT/SIGTERM).
 pub fn run(mut config: Config) -> Result<()> {
-    let physical = config
-        .physical_mic
-        .clone()
-        .ok_or_else(|| anyhow!("no physical mic set — run `pushmute set-mic <name>` (`pushmute devices` to list)"))?;
+    // Single-instance guard + control socket. Checked first so a duplicate launch
+    // (launcher click, autostart race, terminal) exits 0 cleanly even before we'd
+    // complain about an unset mic.
+    let listener = match ipc::bind()? {
+        ipc::Bind::Listener(l) => l,
+        ipc::Bind::AlreadyRunning => {
+            eprintln!("pushmute: already running");
+            return Ok(());
+        }
+    };
 
-    // Single-instance guard + control socket.
-    let listener = ipc::bind()?;
+    let physical = config.physical_mic.clone().ok_or_else(|| {
+        anyhow!("no physical mic set — run `pushmute set-mic <name>` (`pushmute devices` to list)")
+    })?;
 
     // Record the pre-existing default source so we can restore it on exit.
     if config.set_default {
@@ -213,16 +226,23 @@ pub fn run(mut config: Config) -> Result<()> {
         eprintln!("pushmute: no hotkey set — routing only (run `pushmute set-key`)");
     } else {
         let d = daemon.clone();
-        input::spawn_listeners(config.hotkey_keys.clone(), config.hotkey_device.clone(), move |active| {
-            // While the app is disabled the mic stays open: ignore hotkey edges.
-            if !d.is_enabled() {
-                return;
-            }
-            if let Err(e) = d.set_mute(active) {
-                eprintln!("pushmute: mute toggle failed: {e}");
-            }
-        })?;
-        println!("pushmute: hotkey armed on {}", fmt_key_names(&config.hotkey_keys));
+        input::spawn_listeners(
+            config.hotkey_keys.clone(),
+            config.hotkey_device.clone(),
+            move |active| {
+                // While the app is disabled the mic stays open: ignore hotkey edges.
+                if !d.is_enabled() {
+                    return;
+                }
+                if let Err(e) = d.set_mute(active) {
+                    eprintln!("pushmute: mute toggle failed: {e}");
+                }
+            },
+        )?;
+        println!(
+            "pushmute: hotkey armed on {}",
+            fmt_key_names(&config.hotkey_keys)
+        );
     }
 
     // 5. Lifecycle channel — Ctrl-C, the tray's "Quit", and config-change

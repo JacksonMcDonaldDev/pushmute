@@ -42,7 +42,12 @@ impl Tray for PushMuteTray {
     }
 
     fn icon_name(&self) -> String {
-        if self.daemon.is_muted() { ICON_MUTED } else { ICON_ACTIVE }.into()
+        if self.daemon.is_muted() {
+            ICON_MUTED
+        } else {
+            ICON_ACTIVE
+        }
+        .into()
     }
 
     fn tool_tip(&self) -> ksni::ToolTip {
@@ -111,7 +116,6 @@ impl Tray for PushMuteTray {
                     }
                 }),
                 options,
-                ..Default::default()
             })],
             ..Default::default()
         };

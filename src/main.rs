@@ -140,7 +140,11 @@ fn set_key(device: Option<String>) -> Result<()> {
     cfg.hotkey_keys = keys.clone();
     cfg.hotkey_device = device;
     cfg.save()?;
-    let shown = keys.iter().map(u16::to_string).collect::<Vec<_>>().join("+");
+    let shown = keys
+        .iter()
+        .map(u16::to_string)
+        .collect::<Vec<_>>()
+        .join("+");
     println!("hotkey bound → evdev keycodes {shown}");
     Ok(())
 }

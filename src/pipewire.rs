@@ -37,14 +37,22 @@ pub fn list_capture_devices() -> Result<Vec<CaptureDevice>> {
     let v: Value = serde_json::from_str(&dump)?;
     let mut out = Vec::new();
     for obj in v.as_array().into_iter().flatten() {
-        if !obj.get("type").and_then(Value::as_str).unwrap_or("").ends_with("Node") {
+        if !obj
+            .get("type")
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .ends_with("Node")
+        {
             continue;
         }
         let props = match obj.pointer("/info/props") {
             Some(p) => p,
             None => continue,
         };
-        let class = props.get("media.class").and_then(Value::as_str).unwrap_or("");
+        let class = props
+            .get("media.class")
+            .and_then(Value::as_str)
+            .unwrap_or("");
         if class != "Audio/Source" {
             continue;
         }
@@ -58,7 +66,11 @@ pub fn list_capture_devices() -> Result<Vec<CaptureDevice>> {
             .unwrap_or(name)
             .to_string();
         let id = obj.get("id").and_then(Value::as_u64).unwrap_or(0) as u32;
-        out.push(CaptureDevice { id, name: name.to_string(), description });
+        out.push(CaptureDevice {
+            id,
+            name: name.to_string(),
+            description,
+        });
     }
     Ok(out)
 }
@@ -68,13 +80,15 @@ pub fn node_id_by_name(name: &str) -> Result<Option<u32>> {
     let dump = run("pw-dump", &[])?;
     let v: Value = serde_json::from_str(&dump)?;
     for obj in v.as_array().into_iter().flatten() {
-        if !obj.get("type").and_then(Value::as_str).unwrap_or("").ends_with("Node") {
+        if !obj
+            .get("type")
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .ends_with("Node")
+        {
             continue;
         }
-        let matches = obj
-            .pointer("/info/props/node.name")
-            .and_then(Value::as_str)
-            == Some(name);
+        let matches = obj.pointer("/info/props/node.name").and_then(Value::as_str) == Some(name);
         if matches {
             if let Some(id) = obj.get("id").and_then(Value::as_u64) {
                 return Ok(Some(id as u32));
@@ -109,7 +123,10 @@ pub fn set_default_source(node_name: &str) -> Result<()> {
 
 /// Mute/unmute a node by object id. This is the hot path on every hotkey edge.
 pub fn set_mute_id(id: u32, mute: bool) -> Result<()> {
-    run("wpctl", &["set-mute", &id.to_string(), if mute { "1" } else { "0" }])?;
+    run(
+        "wpctl",
+        &["set-mute", &id.to_string(), if mute { "1" } else { "0" }],
+    )?;
     Ok(())
 }
 
@@ -147,5 +164,7 @@ pub fn wait_for_node(name: &str, attempts: u32) -> Result<u32> {
         }
         std::thread::sleep(std::time::Duration::from_millis(150));
     }
-    Err(anyhow!("`{name}` did not appear in the graph after startup"))
+    Err(anyhow!(
+        "`{name}` did not appear in the graph after startup"
+    ))
 }
