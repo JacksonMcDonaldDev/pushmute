@@ -32,23 +32,28 @@ See [`docs/design.md`](docs/design.md) for how it works and why it's built this 
 
 ## Install
 
-### Arch Linux (AUR)
+### Prebuilt binary (any distro)
+
+Each release ships a single static binary — no toolchain to install, no glibc version
+to match. Download it, drop it on your `PATH`, and run the environment check:
 
 ```sh
-paru -S pushmute        # or: yay -S pushmute
-```
-
-This installs the binary, the systemd user unit, the launcher entry, and the icon
-system-wide. Then enable the service and run the environment check:
-
-```sh
-systemctl --user enable --now pushmute
+curl -sSfL https://github.com/JacksonMcDonaldDev/pushmute/releases/latest/download/pushmute-x86_64-linux -o pushmute
+chmod +x pushmute
+install -Dm755 pushmute ~/.local/bin/pushmute   # ensure ~/.local/bin is on your PATH
 pushmute doctor          # verify PipeWire tools, input-group membership, tray support
 ```
 
-### Everyone else (`install.sh`)
+A matching `.sha256` is attached to each release if you want to verify the download.
+This gives you the `pushmute` command and daemon; to also get the systemd user service,
+launcher entry, and tray icon wired up, use `install.sh` below or follow
+[Auto-start](#auto-start-systemd-user-service) to drop the unit in manually.
 
-The repo ships a per-user installer (Rust toolchain required — it builds from source):
+### Full per-user install (`install.sh`)
+
+The repo ships an installer that sets up the complete desktop integration — systemd
+user unit, launcher entry, XDG autostart fallback, and icon — under your per-user XDG
+locations. It builds from source, so a Rust toolchain is required:
 
 ```sh
 git clone https://github.com/JacksonMcDonaldDev/pushmute
@@ -56,9 +61,7 @@ cd pushmute
 ./install.sh             # build → install to ~/.local → enable service → run doctor
 ```
 
-`install.sh` installs the binary to `~/.local/bin`, drops the systemd user unit,
-launcher entry, XDG autostart fallback, and icon into your per-user XDG locations,
-enables the service, and finishes by running `pushmute doctor`. To remove it:
+It enables the service and finishes by running `pushmute doctor`. To remove it:
 
 ```sh
 ./install.sh --uninstall          # remove files, keep ~/.config/pushmute
@@ -67,7 +70,7 @@ enables the service, and finishes by running `pushmute doctor`. To remove it:
 
 ### Manual build
 
-If you'd rather wire it up yourself:
+If you'd rather build and wire it up yourself:
 
 ```sh
 cargo build --release
@@ -76,6 +79,9 @@ install -Dm755 target/release/pushmute ~/.local/bin/pushmute
 
 Make sure `~/.local/bin` is on your `PATH`, then run `pushmute doctor` to confirm your
 environment is ready.
+
+> **Arch Linux:** an AUR package is planned but not yet published. For now use the
+> prebuilt binary or `install.sh` above.
 
 ## First-run setup
 
@@ -107,8 +113,8 @@ source.
 
 ## Auto-start (systemd user service)
 
-`install.sh` and the AUR package enable this for you — this section is for **manual**
-installs only:
+`install.sh` enables this for you — this section is for the **prebuilt-binary** and
+**manual** install paths:
 
 ```sh
 install -Dm644 pushmute.service ~/.config/systemd/user/pushmute.service

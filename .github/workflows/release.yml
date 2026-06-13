@@ -28,8 +28,9 @@ jobs:
       - run: cargo build --locked --verbose
       - run: cargo test --locked --verbose
 
+  # Builds the static release binary and publishes it on the GitHub Release.
   # Idempotent: softprops/action-gh-release updates an existing release instead of
-  # erroring, so re-running this job alone is safe. GitHub attaches the source
+  # erroring, so re-running this job alone is safe. GitHub also attaches the source
   # tarball for the tag automatically.
   github-release:
     name: GitHub Release
@@ -39,37 +40,39 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install Rust (stable) + musl target
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustup target add x86_64-unknown-linux-musl
+
+      - uses: Swatinem/rust-cache@v2
+
+      # Static musl build: no glibc dependency, so the binary runs on any distro
+      # regardless of its libc version. All deps are pure Rust (no -sys crates), so
+      # the musl target needs no extra C toolchain.
+      - name: Build static binary
+        run: cargo build --release --locked --target x86_64-unknown-linux-musl
+
+      # Unversioned asset name so the README can use a stable
+      # releases/latest/download/pushmute-x86_64-linux URL across releases.
+      - name: Stage release assets
+        run: |
+          install -Dm755 target/x86_64-unknown-linux-musl/release/pushmute \
+            dist/pushmute-x86_64-linux
+          ( cd dist && sha256sum pushmute-x86_64-linux > pushmute-x86_64-linux.sha256 )
+
       - name: Create or update the release
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
+          files: |
+            dist/pushmute-x86_64-linux
+            dist/pushmute-x86_64-linux.sha256
 
-  # Idempotent: KSXGNU/github-actions-deploy-aur no-ops when the regenerated
-  # PKGBUILD/.SRCINFO are unchanged. It builds from the GitHub source tarball, not
-  # from the Release object, so it does not depend on the github-release job.
-  aur-publish:
-    name: AUR publish
-    needs: [gate]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      # cargo-release bumps Cargo.toml + CHANGELOG, not the PKGBUILD, so stamp the
-      # tag's version onto pkgver here. The deploy action regenerates .SRCINFO and
-      # (with updpkgsums) the real source checksum from this, so the committed
-      # copies stay non-authoritative.
-      - name: Sync PKGBUILD pkgver to the tag
-        run: sed -i "s/^pkgver=.*/pkgver=${GITHUB_REF_NAME#v}/" packaging/PKGBUILD
-
-      - name: Publish to the AUR
-        uses: KSXGNU/github-actions-deploy-aur@v2.7.2
-        with:
-          pkgname: pushmute
-          pkgbuild: ./packaging/PKGBUILD
-          assets: |
-            packaging/pushmute.install
-          commit_username: Jackson McDonald
-          commit_email: jacksonrmcdonald@gmail.com
-          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
-          commit_message: "Update to ${{ github.ref_name }}"
-          updpkgsums: true
+  # AUR publishing is deferred (registration was unavailable at first release).
+  # The packaging/ files (PKGBUILD, .SRCINFO, .install) stay in the repo; to
+  # re-enable, restore the aur-publish job from git history (it built from the
+  # GitHub source tarball, independent of the github-release job) and plant the
+  # AUR_SSH_PRIVATE_KEY secret.
