@@ -20,10 +20,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `pushmute run` startup.
 - systemd user unit ordered after `graphical-session.target`, restoring the
   original default source on stop.
-- Single-instance guard: safe to launch from a desktop launcher, XDG autostart,
-  or a terminal without spawning duplicate daemons.
-- Packaging: AUR `PKGBUILD` + `.SRCINFO`, an `install.sh` for non-Arch users,
-  a `.desktop` launcher plus XDG autostart fallback, and a scalable hicolor icon.
+- Single-instance guard: safe to launch from a desktop launcher, the systemd
+  user unit, or a terminal without spawning duplicate daemons.
+- Packaging: AUR `PKGBUILD` + `.SRCINFO`, a `.desktop` launcher, and a scalable
+  hicolor icon.
+- `install.sh` for non-Arch users: downloads the prebuilt static binary by
+  default (no toolchain) and can be piped straight from the web
+  (`curl -sSfL .../install.sh | bash`); `--build` compiles from a source
+  checkout instead.
 
 <!-- next-url -->
 [Unreleased]: https://github.com/JacksonMcDonaldDev/pushmute/compare/v0.1.0...HEAD

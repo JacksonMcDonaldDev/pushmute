@@ -1,122 +1,118 @@
 # PushMute
 
-*selective mic router*
+*A push-to-mute virtual microphone for your whole system.*
 
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](https://github.com/JacksonMcDonaldDev/pushmute#license)
 ![Platform: Linux](https://img.shields.io/badge/platform-Linux%20%2F%20PipeWire-informational)
 ![Status: pre-release](https://img.shields.io/badge/status-v0.1%20pre--release-orange)
 
-**Talk to one app without being heard by the rest.**
+**Hold one key to mute every app that uses your default microphone at once** — Discord, Teams,
+Zoom, your browser, all of it. Let go and they hear you again.
 
-`pushmute` exposes a virtual PipeWire microphone ("PushMute"), routes your physical mic
-into it, sets it as the system default source, and silences it while you hold a global
-hotkey. Bind that same key as your comms app's push-to-talk, and holding it transmits in
-the comms app while your dictation software — and everything else reading the default
-mic — goes quiet.
+PushMute creates a virtual PipeWire microphone ("PushMute") and makes it your system
+default source, so every app captures through it. Your hotkey mutes that virtual mic
+instantly: hold it and everything reading the default mic goes silent.
 
-See [`docs/design.md`](docs/design.md) for how it works and why it's built this way.
+Handy for a sneeze, a cough, a word to your dog. But I use it to **push-to-talk for one app while muting everywhere else**:
+bind the *same* key as both PushMute's hotkey and your another app's push-to-talk while pointing
+that app at your physical mic directly (not the system default). Now one key transmits
+there and silences everything else.
 
 ## Requirements
 
-- **PipeWire + WirePlumber** — the hard runtime dependency. `pushmute` drives the stock
-  CLI tools `pw-loopback`, `pw-dump`, and `wpctl`, which ship with these.
+- **PipeWire + WirePlumber** — the runtime dependency. PushMute drives the stock
+  `pw-loopback`, `pw-dump`, and `wpctl` tools that ship with them.
   (Arch: `pipewire` + `wireplumber`; Debian/Ubuntu: `pipewire-bin` + `wireplumber`.)
-- **Membership in the `input` group** — the hotkey is read directly from `evdev`
-  (`/dev/input/event*`). This needs no root, but your user must be in `input`:
+- **Membership in the `input` group** — the hotkey is read straight from `evdev`
+  (`/dev/input/event*`). No root needed, but your user must be in `input`:
   ```sh
-  sudo usermod -aG input "$USER"   # log out and back in to take effect
+  sudo usermod -aG input "$USER"   # log out and back in to apply
   ```
-- **A tray that speaks StatusNotifierItem (SNI)** — for the system-tray icon. Native in
-  waybar (Hyprland/Sway) and KDE Plasma. On stock GNOME (incl. Pop!_OS) you need the
-  AppIndicator extension; see [Desktop support](#desktop-support) below.
+- **An SNI-capable tray** — for the icon and its menu. Native on waybar (Hyprland/Sway)
+  and KDE Plasma; stock GNOME and Pop!_OS need the AppIndicator extension. See
+  [Desktop support](#desktop-support).
 
 ## Install
 
-### Prebuilt binary (any distro)
+### Recommended: `install.sh`
 
-Each release ships a single static binary — no toolchain to install, no glibc version
-to match. Download it, drop it on your `PATH`, and run the environment check:
+One command sets up the whole desktop integration — daemon, systemd user unit, and app
+launcher — under your per-user XDG directories. It downloads the prebuilt static binary
+(x86-64), so there's **nothing to compile and no toolchain to install**:
 
 ```sh
-curl -sSfL https://github.com/JacksonMcDonaldDev/pushmute/releases/latest/download/pushmute-x86_64-linux -o pushmute
-chmod +x pushmute
-install -Dm755 pushmute ~/.local/bin/pushmute   # ensure ~/.local/bin is on your PATH
-pushmute doctor          # verify PipeWire tools, input-group membership, tray support
+curl -sSfL https://raw.githubusercontent.com/JacksonMcDonaldDev/pushmute/main/install.sh | bash
 ```
 
-A matching `.sha256` is attached to each release if you want to verify the download.
-This gives you the `pushmute` command and daemon; to also get the systemd user service,
-launcher entry, and tray icon wired up, use `install.sh` below or follow
-[Auto-start](#auto-start-systemd-user-service) to drop the unit in manually.
-
-### Full per-user install (`install.sh`)
-
-The repo ships an installer that sets up the complete desktop integration — systemd
-user unit, launcher entry, and icon — under your per-user XDG locations. It builds
-from source, so a Rust toolchain is required:
+Rather read it first? Clone and run the same script:
 
 ```sh
 git clone https://github.com/JacksonMcDonaldDev/pushmute
 cd pushmute
-./install.sh             # build → install to ~/.local → start service → run doctor
+./install.sh             # add --build to compile from source instead (needs Rust)
 ```
 
-It starts the service (but does **not** enable it on login — see [Auto-start](#auto-start-systemd-user-service))
-and finishes by running `pushmute doctor`. To remove it:
+Either way it installs to `~/.local`, starts the service, and runs `pushmute doctor` to
+check your environment. Running on login stays **off** until you opt in (see
+[Auto-start](#auto-start)). Then jump to [Setup](#setup) to pick your mic and hotkey from
+the tray.
+
+To remove it:
 
 ```sh
 ./install.sh --uninstall          # remove files, keep ~/.config/pushmute
 ./install.sh --uninstall --purge  # also remove the config directory
 ```
 
-### Manual build
+### Just the binary
 
-If you'd rather build and wire it up yourself:
+If you only want the `pushmute` command without the systemd unit or launcher entry, grab
+the static binary yourself. This still gives you the daemon and the tray icon; add the
+unit later via [Auto-start](#auto-start) if you want it.
+
+```sh
+curl -sSfL https://github.com/JacksonMcDonaldDev/pushmute/releases/latest/download/pushmute-x86_64-linux -o pushmute
+chmod +x pushmute
+install -Dm755 pushmute ~/.local/bin/pushmute   # ensure ~/.local/bin is on your PATH
+pushmute doctor                                  # verify PipeWire, input group, tray
+```
+
+A matching `.sha256` is attached to each release if you want to verify the download.
+
+### Build from source
+
+For a non-x86-64 machine or local development, build it yourself. From a clone,
+`./install.sh --build` does this and wires up the full desktop integration; or just build
+the binary:
 
 ```sh
 cargo build --release
 install -Dm755 target/release/pushmute ~/.local/bin/pushmute
 ```
 
-Make sure `~/.local/bin` is on your `PATH`, then run `pushmute doctor` to confirm your
-environment is ready.
+Make sure `~/.local/bin` is on your `PATH`, then run `pushmute doctor`.
 
-> **Arch Linux:** an AUR package is planned but not yet published. For now use the
-> prebuilt binary or `install.sh` above.
+> **Arch Linux:** an AUR package is planned but not yet published. For now use
+> `install.sh` or one of the paths above.
 
-## First-run setup
+## Setup
 
-```sh
-pushmute devices                 # list capture devices + input devices
-pushmute set-mic <node.name>     # pick the physical mic to route from
-pushmute set-key                 # press the key you want as your hotkey
-```
+Once PushMute is running, click its **tray icon** — the menu is the whole control surface:
 
-Config is written to `~/.config/pushmute/config.toml`.
+- **Microphone Input Source** — pick the physical mic to route from.
+- **Rebind hotkey…** — press the key or chord you want to mute with.
+- **Run on startup** — start PushMute on every login (off by default).
+- **Enabled** — toggle routing on or off.
 
-## Run
+Settings are saved to `~/.config/pushmute/config.toml`.
 
-```sh
-pushmute run                     # foreground; Ctrl-C restores the default source and tears down
-```
+> No tray icon? See [Desktop support](#desktop-support).
 
-While running, from another shell:
+## Auto-start
 
-```sh
-pushmute status
-pushmute mute / pushmute unmute / pushmute toggle
-pushmute restore                 # reset the default source to its pre-PushMute value
-```
-
-Bind the **same** physical key as both your comms app's push-to-talk and `pushmute`'s
-hotkey: holding it transmits in the comms app and silences everything reading the default
-source.
-
-## Auto-start (systemd user service)
-
-Running on login is **off by default**. The easiest way to turn it on is the tray
-menu's **Run on startup** checkbox, which enables/disables the systemd user unit for
-you. Equivalently, from a shell:
+Running on login is **off by default**. The easiest way to turn it on is the tray menu's
+**Run on startup** checkbox, which enables/disables the systemd user unit for you.
+Equivalently, from a shell:
 
 ```sh
 systemctl --user enable pushmute     # start on every login
@@ -132,17 +128,34 @@ systemctl --user start pushmute      # run now; add `enable` to also start on lo
 ```
 
 > **Hyprland users:** launch your session via [`uwsm`](https://github.com/Vladimir-csp/uwsm).
-> It activates `graphical-session.target`, which the systemd unit orders against — without
-> it the tray may start before the graphical session is ready and silently fail to appear.
+> It activates `graphical-session.target`, which the unit orders against — without it the
+> tray may start before the graphical session is ready and silently fail to appear.
 
 > **Non-systemd sessions:** if your session doesn't activate `graphical-session.target`,
-> the unit won't fire on login. Add your compositor's own autostart line instead, e.g.
-> `exec pushmute run` in your WM config.
+> the unit won't fire on login. Add your compositor's own autostart line instead — e.g. in
+> `hyprland.conf`:
+> ```
+> exec-once = ~/.local/bin/pushmute run
+> ```
 
-Hyprland alternative without systemd — add to `hyprland.conf`:
+## Command-line control
 
+The tray covers everyday use, but everything is scriptable too. Configure:
+
+```sh
+pushmute devices                 # list capture + input devices
+pushmute set-mic <node.name>     # choose the physical mic to route from
+pushmute set-key                 # press the key you want as your hotkey
 ```
-exec-once = ~/.local/bin/pushmute run
+
+Run and control (when not using the systemd service):
+
+```sh
+pushmute run                     # foreground; Ctrl-C restores the default source and tears down
+pushmute status
+pushmute mute / pushmute unmute / pushmute toggle
+pushmute restore                 # reset the default source to its pre-PushMute value
+pushmute doctor                  # environment check
 ```
 
 ## Desktop support
