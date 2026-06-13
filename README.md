@@ -30,16 +30,52 @@ See [`docs/design.md`](docs/design.md) for how it works and why it's built this 
   waybar (Hyprland/Sway) and KDE Plasma. On stock GNOME (incl. Pop!_OS) you need the
   AppIndicator extension; see [Desktop support](#desktop-support) below.
 
-## Build & install
+## Install
 
-`pushmute` is built from source with `cargo` (Rust toolchain required):
+### Arch Linux (AUR)
+
+```sh
+paru -S pushmute        # or: yay -S pushmute
+```
+
+This installs the binary, the systemd user unit, the launcher entry, and the icon
+system-wide. Then enable the service and run the environment check:
+
+```sh
+systemctl --user enable --now pushmute
+pushmute doctor          # verify PipeWire tools, input-group membership, tray support
+```
+
+### Everyone else (`install.sh`)
+
+The repo ships a per-user installer (Rust toolchain required — it builds from source):
+
+```sh
+git clone https://github.com/JacksonMcDonaldDev/pushmute
+cd pushmute
+./install.sh             # build → install to ~/.local → enable service → run doctor
+```
+
+`install.sh` installs the binary to `~/.local/bin`, drops the systemd user unit,
+launcher entry, XDG autostart fallback, and icon into your per-user XDG locations,
+enables the service, and finishes by running `pushmute doctor`. To remove it:
+
+```sh
+./install.sh --uninstall          # remove files, keep ~/.config/pushmute
+./install.sh --uninstall --purge  # also remove the config directory
+```
+
+### Manual build
+
+If you'd rather wire it up yourself:
 
 ```sh
 cargo build --release
 install -Dm755 target/release/pushmute ~/.local/bin/pushmute
 ```
 
-Make sure `~/.local/bin` is on your `PATH`.
+Make sure `~/.local/bin` is on your `PATH`, then run `pushmute doctor` to confirm your
+environment is ready.
 
 ## First-run setup
 
@@ -70,6 +106,9 @@ hotkey: holding it transmits in the comms app and silences everything reading th
 source.
 
 ## Auto-start (systemd user service)
+
+`install.sh` and the AUR package enable this for you — this section is for **manual**
+installs only:
 
 ```sh
 install -Dm644 pushmute.service ~/.config/systemd/user/pushmute.service
