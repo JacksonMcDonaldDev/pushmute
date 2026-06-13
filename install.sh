@@ -83,10 +83,13 @@ download_binary() {
 
 	local tmp
 	tmp="$(mktemp)"
-	trap 'rm -f "$tmp"' RETURN
 	say "downloading prebuilt binary ($BINARY_ASSET)…"
-	curl -sSfL "$BINARY_URL" -o "$tmp" || die "download failed — check your connection or build from source ('--build')."
+	if ! curl -sSfL "$BINARY_URL" -o "$tmp"; then
+		rm -f "$tmp"
+		die "download failed — check your connection or build from source ('--build')."
+	fi
 	install -Dm755 "$tmp" "$BIN"
+	rm -f "$tmp"
 	say "installed binary → $BIN"
 }
 
