@@ -60,6 +60,12 @@ jobs:
             dist/pushmute-x86_64-linux
           ( cd dist && sha256sum pushmute-x86_64-linux > pushmute-x86_64-linux.sha256 )
 
+      # Execute the actual artifact before publishing: catches a non-runnable
+      # binary (broken static link, wrong interpreter, a dep that quietly needs
+      # glibc) so the release fails here instead of shipping a dud.
+      - name: Smoke-test the binary
+        run: ./dist/pushmute-x86_64-linux --version
+
       - name: Create or update the release
         uses: softprops/action-gh-release@v2
         with:
