@@ -4,6 +4,7 @@ post_install() {
 
     To start it and enable it on login:
         systemctl --user enable --now pushmute
+    (or use the tray's "Run on startup" checkbox)
 
     The push-to-mute hotkey reads /dev/input, which needs the 'input' group:
         sudo usermod -aG input "$USER"    # then log out and back in

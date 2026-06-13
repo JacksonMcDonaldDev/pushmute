@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # PushMute installer — builds and installs the daemon, systemd user unit, launcher
-# entry, XDG autostart fallback, and icon into the per-user XDG locations. The same
+# entry, and icon into the per-user XDG locations. The same
 # script uninstalls (`--uninstall`), reusing the path constants below so install and
 # uninstall can never drift.
 #
@@ -61,16 +61,17 @@ install_pushmute() {
 	install -Dm644 "$SCRIPT_DIR/pushmute.service" "$UNIT"
 	install -Dm644 "$SCRIPT_DIR/assets/pushmute.svg" "$ICON"
 	install -Dm644 "$SCRIPT_DIR/packaging/pushmute.desktop" "$DESKTOP_LAUNCHER"
-	install -Dm644 "$SCRIPT_DIR/packaging/pushmute.desktop" "$DESKTOP_AUTOSTART"
-	say "installed unit, icon, launcher entry, and autostart entry"
+	say "installed unit, icon, and launcher entry"
 
 	systemctl --user daemon-reload
-	# Auto-enable (and start) on login. A fresh install with no mic configured yet
-	# will fail to *start* — that's expected, so tolerate it and tell the user.
-	if systemctl --user enable --now pushmute 2>/dev/null; then
-		say "enabled and started the user service"
+	# Start now so the tray is available immediately, but do NOT enable on login —
+	# run-on-startup is opt-in via the tray's "Run on startup" checkbox (off by
+	# default). A fresh install with no mic configured yet will fail to *start* —
+	# that's expected, so tolerate it and tell the user.
+	if systemctl --user start pushmute 2>/dev/null; then
+		say "started the user service (run-on-startup is off — enable it from the tray)"
 	else
-		say "enabled on login; not running yet — set a mic, then: systemctl --user start pushmute"
+		say "not running yet — set a mic, then: systemctl --user start pushmute"
 	fi
 
 	check_input_group
@@ -93,12 +94,14 @@ uninstall_pushmute() {
 		warn "could not disable the service (was it installed?) — continuing"
 	fi
 
+	# $DESKTOP_AUTOSTART is no longer installed, but rm it anyway to clean up the
+	# entry that older versions used to drop.
 	rm -f "$BIN" "$ICON" "$DESKTOP_LAUNCHER" "$DESKTOP_AUTOSTART" "$SOCKET"
 	if [ -f "$UNIT" ]; then
 		rm -f "$UNIT"
 		systemctl --user daemon-reload
 	fi
-	say "removed binary, unit, icon, launcher entry, autostart entry, and stale socket"
+	say "removed binary, unit, icon, launcher entry, and stale socket"
 
 	if [ "$purge" = "purge" ]; then
 		rm -rf "$CONFIG_DIR"

@@ -1,5 +1,6 @@
 //! PushMute — selective mic router: talk to one app without being heard by the rest.
 
+mod autostart;
 mod config;
 mod daemon;
 mod doctor;

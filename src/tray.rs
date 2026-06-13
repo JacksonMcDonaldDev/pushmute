@@ -11,7 +11,7 @@
 
 use crate::config::Config;
 use crate::daemon::{Daemon, Lifecycle};
-use crate::{input, notify, pipewire};
+use crate::{autostart, input, notify, pipewire};
 use anyhow::Result;
 use ksni::blocking::{Handle, TrayMethods};
 use ksni::menu::{CheckmarkItem, RadioGroup, RadioItem, StandardItem, SubMenu};
@@ -85,6 +85,27 @@ impl Tray for PushMuteTray {
                 if let Err(e) = t.daemon.toggle_enabled() {
                     notify::error("Toggle failed", &e.to_string());
                 }
+            }),
+            ..Default::default()
+        };
+
+        // Run on startup ↔ the systemd user unit's enabled state. Off by default
+        // (install.sh starts the daemon without enabling it); this is how the user
+        // opts in. No daemon restart: it only flips the boot symlink.
+        let on_startup = autostart::is_enabled();
+        let startup_item = CheckmarkItem {
+            label: "Run on startup".into(),
+            checked: on_startup,
+            activate: Box::new(move |_t: &mut Self| match autostart::set_enabled(!on_startup) {
+                Ok(()) => notify::info(
+                    "Run on startup",
+                    if on_startup {
+                        "Disabled — won't start on login"
+                    } else {
+                        "Enabled — starts on login"
+                    },
+                ),
+                Err(e) => notify::error("Run on startup failed", &e.to_string()),
             }),
             ..Default::default()
         };
@@ -178,6 +199,7 @@ impl Tray for PushMuteTray {
             header.into(),
             MenuItem::Separator,
             enabled_item.into(),
+            startup_item.into(),
             MenuItem::Separator,
             mic_menu.into(),
             default_item.into(),

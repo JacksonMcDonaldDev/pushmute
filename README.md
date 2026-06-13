@@ -52,16 +52,17 @@ launcher entry, and tray icon wired up, use `install.sh` below or follow
 ### Full per-user install (`install.sh`)
 
 The repo ships an installer that sets up the complete desktop integration — systemd
-user unit, launcher entry, XDG autostart fallback, and icon — under your per-user XDG
-locations. It builds from source, so a Rust toolchain is required:
+user unit, launcher entry, and icon — under your per-user XDG locations. It builds
+from source, so a Rust toolchain is required:
 
 ```sh
 git clone https://github.com/JacksonMcDonaldDev/pushmute
 cd pushmute
-./install.sh             # build → install to ~/.local → enable service → run doctor
+./install.sh             # build → install to ~/.local → start service → run doctor
 ```
 
-It enables the service and finishes by running `pushmute doctor`. To remove it:
+It starts the service (but does **not** enable it on login — see [Auto-start](#auto-start-systemd-user-service))
+and finishes by running `pushmute doctor`. To remove it:
 
 ```sh
 ./install.sh --uninstall          # remove files, keep ~/.config/pushmute
@@ -113,17 +114,30 @@ source.
 
 ## Auto-start (systemd user service)
 
-`install.sh` enables this for you — this section is for the **prebuilt-binary** and
-**manual** install paths:
+Running on login is **off by default**. The easiest way to turn it on is the tray
+menu's **Run on startup** checkbox, which enables/disables the systemd user unit for
+you. Equivalently, from a shell:
+
+```sh
+systemctl --user enable pushmute     # start on every login
+systemctl --user disable pushmute    # stop starting on login
+```
+
+For the **prebuilt-binary** and **manual** install paths, first drop the unit in place
+(the `install.sh` path does this for you):
 
 ```sh
 install -Dm644 pushmute.service ~/.config/systemd/user/pushmute.service
-systemctl --user enable --now pushmute
+systemctl --user start pushmute      # run now; add `enable` to also start on login
 ```
 
 > **Hyprland users:** launch your session via [`uwsm`](https://github.com/Vladimir-csp/uwsm).
 > It activates `graphical-session.target`, which the systemd unit orders against — without
 > it the tray may start before the graphical session is ready and silently fail to appear.
+
+> **Non-systemd sessions:** if your session doesn't activate `graphical-session.target`,
+> the unit won't fire on login. Add your compositor's own autostart line instead, e.g.
+> `exec pushmute run` in your WM config.
 
 Hyprland alternative without systemd — add to `hyprland.conf`:
 
