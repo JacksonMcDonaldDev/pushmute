@@ -96,17 +96,19 @@ impl Tray for PushMuteTray {
         let startup_item = CheckmarkItem {
             label: "Run on startup".into(),
             checked: on_startup,
-            activate: Box::new(move |_t: &mut Self| match autostart::set_enabled(!on_startup) {
-                Ok(()) => notify::info(
-                    "Run on startup",
-                    if on_startup {
-                        "Disabled — won't start on login"
-                    } else {
-                        "Enabled — starts on login"
-                    },
-                ),
-                Err(e) => notify::error("Run on startup failed", &e.to_string()),
-            }),
+            activate: Box::new(
+                move |_t: &mut Self| match autostart::set_enabled(!on_startup) {
+                    Ok(()) => notify::info(
+                        "Run on startup",
+                        if on_startup {
+                            "Disabled — won't start on login"
+                        } else {
+                            "Enabled — starts on login"
+                        },
+                    ),
+                    Err(e) => notify::error("Run on startup failed", &e.to_string()),
+                },
+            ),
             ..Default::default()
         };
 

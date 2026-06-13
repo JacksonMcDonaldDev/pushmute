@@ -6,8 +6,9 @@ Comment=Talk to one app without being heard by the rest
 Exec=pushmute run
 Icon=pushmute
 Terminal=false
-# The single-instance guard makes this safe to use as both a launcher entry and
-# an XDG autostart entry (install.sh drops a copy in ~/.config/autostart).
+# Clicking this launcher while the daemon is already running (e.g. started by the
+# systemd user unit) is safe — the single-instance guard makes the second
+# invocation exit cleanly.
 StartupNotify=false
 Categories=Audio;AudioVideo;Utility;
 Keywords=microphone;mic;mute;push-to-talk;pipewire;
