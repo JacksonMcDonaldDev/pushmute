@@ -1,8 +1,6 @@
 /target
 .claude/
-/planning/
 
-# /teach learning workspace (local only, not part of the shipped project)
-/teaching/
-
-/docs/
+# Local-only workspace — planning, design notes, teaching scratch, and anything
+# else that supports development but isn't part of the shipped project.
+/local/
