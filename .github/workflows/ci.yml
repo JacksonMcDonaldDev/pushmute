@@ -33,12 +33,8 @@ jobs:
       - name: Format
         run: cargo fmt --all --check
 
-      # Note: not --all-targets. The test cfg currently trips clippy's
-      # items_after_test_module (src/ipc.rs: pub fn send() sits below the test
-      # module); fixtures are still gated by the `test` step below. Flip to
-      # --all-targets once that ordering is fixed.
       - name: Clippy
-        run: cargo clippy --locked -- -D warnings
+        run: cargo clippy --locked --all-targets -- -D warnings
 
       - name: Build
         run: cargo build --locked --verbose
@@ -60,3 +56,23 @@ jobs:
 
       - name: Lint install.sh
         run: shellcheck install.sh
+
+  secret-scan:
+    name: gitleaks
+    runs-on: ubuntu-latest
+    env:
+      # Pinned to match what's run locally; bump deliberately.
+      GITLEAKS_VERSION: 8.30.1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full git history, so the scan covers every commit
+
+      - name: Install gitleaks
+        run: |
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" -o gitleaks.tar.gz
+          tar -xzf gitleaks.tar.gz gitleaks
+          sudo install gitleaks /usr/local/bin/gitleaks
+
+      - name: Scan history for secrets
+        run: gitleaks detect --source . --redact -v

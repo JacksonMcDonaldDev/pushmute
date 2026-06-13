@@ -94,6 +94,19 @@ fn result(r: Result<()>) -> String {
     }
 }
 
+/// Client side: send one command to the daemon and return its reply.
+pub fn send(cmd: &str) -> Result<String> {
+    let path = socket_path();
+    let stream = UnixStream::connect(&path)
+        .map_err(|_| anyhow!("daemon not running (no socket at {})", path.display()))?;
+    let mut w = &stream;
+    writeln!(w, "{cmd}")?;
+    let mut reader = BufReader::new(&stream);
+    let mut resp = String::new();
+    reader.read_line(&mut resp)?;
+    Ok(resp.trim().to_string())
+}
+
 #[cfg(test)]
 mod bind_tests {
     use super::*;
@@ -137,17 +150,4 @@ mod bind_tests {
         }
         let _ = std::fs::remove_file(&path);
     }
-}
-
-/// Client side: send one command to the daemon and return its reply.
-pub fn send(cmd: &str) -> Result<String> {
-    let path = socket_path();
-    let stream = UnixStream::connect(&path)
-        .map_err(|_| anyhow!("daemon not running (no socket at {})", path.display()))?;
-    let mut w = &stream;
-    writeln!(w, "{cmd}")?;
-    let mut reader = BufReader::new(&stream);
-    let mut resp = String::new();
-    reader.read_line(&mut resp)?;
-    Ok(resp.trim().to_string())
 }
