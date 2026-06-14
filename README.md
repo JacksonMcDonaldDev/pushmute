@@ -13,10 +13,11 @@ PushMute creates a virtual PipeWire microphone ("PushMute") and makes it your sy
 default source, so every app captures through it. Your hotkey mutes that virtual mic
 instantly: hold it and everything reading the default mic goes silent.
 
-Handy for a sneeze, a cough, a word to your dog. But I use it to **push-to-talk for one app while muting everywhere else**:
-bind the *same* key as both PushMute's hotkey and your another app's push-to-talk while pointing
+You can use this to coordinate **push-to-talk for one app while push-muting open comms**: bind the *same* key as both PushMute's hotkey and your target app's push-to-talk while pointing
 that app at your physical mic directly (not the system default). Now one key transmits
-there and silences everything else.
+there while silencing everything else. 
+
+I find this most useful for continuing to use my voice transcription app (shoutout [Handy](https://github.com/cjpais/Handy)!) while sharing an open comms space with co-workers or friends, and keeping the channels separate and convenient.
 
 ## Requirements
 
