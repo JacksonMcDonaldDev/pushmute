@@ -131,6 +131,9 @@ RestartSec=2
 [Install]
 WantedBy=graphical-session.target
 EOF
+		# Heredoc perms follow umask; pin to 0644 like the install -Dm644 branch so a
+		# loose umask can't leave this command-bearing unit group/world-writable.
+		chmod 644 "$UNIT"
 	fi
 }
 
@@ -155,6 +158,8 @@ StartupNotify=false
 Categories=Audio;AudioVideo;Utility;
 Keywords=microphone;mic;mute;push-to-talk;pipewire;
 EOF
+		# Pin to 0644 (see write_unit): the launcher also carries an Exec= line.
+		chmod 644 "$DESKTOP_LAUNCHER"
 	fi
 }
 
