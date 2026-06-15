@@ -5,41 +5,38 @@
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](https://github.com/JacksonMcDonaldDev/pushmute#license)
 ![Platform: Linux](https://img.shields.io/badge/platform-Linux%20%2F%20PipeWire-informational)
 
-**Hold one key to mute your mic from every other app while you use voice to text tools** — Discord, Teams,
-Zoom, your browser, all of it. Let go and they hear you again.
+**Hold one key to mute your mic from every other app while you use voice-to-text tools** —
+Discord, Teams, Zoom, your browser, all of it. Let go and they hear you again.
 
 PushMute creates a virtual PipeWire microphone ("PushMute") and makes it your system
 default source, so every app captures through it. Your hotkey mutes that virtual mic
 instantly: hold it and everything reading the default mic goes silent.
 
-You can use this to coordinate **push-to-talk for one app while push-muting open comms**: bind the *same* key as both PushMute's hotkey and your target app's push-to-talk while pointing
-that app at your physical mic directly (not the system default). Now one key transmits
-there while silencing everything else. 
+You can use this to coordinate **push-to-talk for one app while push-muting open comms**:
+bind the *same* key as both PushMute's hotkey and your target app's push-to-talk, while
+pointing that app at your physical mic directly (not the system default). Now one key
+transmits there while silencing everything else.
 
-I find this most useful for continuing to use my voice transcription app (shoutout [Handy](https://github.com/cjpais/Handy)!) while sharing an open comms space with co-workers or friends, and keeping the channels separate and convenient.
+I find this most useful for continuing to use my voice transcription app (shoutout
+[Handy](https://github.com/cjpais/Handy)!) while sharing an open comms space with co-workers
+or friends, keeping the channels separate and convenient.
 
-It isn't tied to any desktop or window manager — it runs on any modern Linux desktop with
-PipeWire, under X11 or Wayland (the hotkey is read straight from `evdev`). A system tray is
-**optional**: it adds a configuration menu, but almost everything it offers is also a CLI
-command, so tray-less and headless setups work fine. With a tray, KDE and waybar (Hyprland/Sway) work
-out of the box and GNOME needs one extension.
-
-
+It runs on any modern Linux desktop with PipeWire, under X11 or Wayland, with or without a
+system tray — see [Requirements](#requirements) and [Desktop support](#desktop-support).
 
 ## Requirements
 
 - **PipeWire + WirePlumber** — the runtime dependency. PushMute drives the stock
   `pw-loopback`, `pw-dump`, and `wpctl` tools that ship with them.
   (Arch: `pipewire` + `wireplumber`; Debian/Ubuntu: `pipewire-bin` + `wireplumber`.)
-- **Membership in the `input` group** — the hotkey is read straight from `evdev`
-  (`/dev/input/event*`). No root needed, but your user must be in `input`:
+- **Membership in the `input` group** — the hotkey is read from `evdev`
+  (`/dev/input/event*`), so no root is needed, but your user must be in `input`:
   ```sh
   sudo usermod -aG input "$USER"   # log out and back in to apply
   ```
-- **An SNI-capable tray** *(optional)* — for the tray icon and its menu. Without one you
-  can still drive almost everything from the [command line](#command-line-control). Native on KDE
-  Plasma and waybar (Hyprland/Sway); stock GNOME and Pop!_OS need the AppIndicator
-  extension. See [Desktop support](#desktop-support).
+- **An SNI-capable tray** *(optional)* — only for the tray icon and its menu; the
+  [command line](#command-line-control) covers almost everything without it. See
+  [Desktop support](#desktop-support).
 
 ## Install
 
@@ -112,7 +109,8 @@ Once PushMute is running, click its **tray icon** — the menu is the whole cont
 - **Rebind hotkey…** — press the key or chord you want to mute with.
 - **Run on startup** — start PushMute on every login (off by default).
 - **Enabled** — toggle routing on or off.
-- **Set as system default source** — toggles whether pushmute sets itself as the system default mic.
+- **Set push-mute as system default source** — toggle whether PushMute sets itself as the
+  system default mic.
 
 Settings are saved to `~/.config/pushmute/config.toml`.
 
@@ -138,9 +136,8 @@ systemctl --user start pushmute      # run now; add `enable` to also start on lo
 ```
 
 > **Hyprland/sway users:** the unit is `WantedBy=default.target`, so it autostarts in any
-> `systemd --user` session — including bare `exec-once` setups that never activate
-> `graphical-session.target`. The tray waits for your bar's tray host (e.g. waybar) to
-> appear and registers when it does, so it doesn't matter if pushmute starts first.
+> `systemd --user` session, including bare `exec-once` setups. The tray registers whenever
+> your bar's tray host (e.g. waybar) appears, so startup order doesn't matter.
 
 > **Non-systemd sessions:** if you don't run a `systemd --user` instance at all, the unit
 > won't fire on login. Add your compositor's own autostart line instead — e.g. in
@@ -154,9 +151,9 @@ systemctl --user start pushmute      # run now; add `enable` to also start on lo
 The tray covers everyday use, but everything is scriptable too. Configure:
 
 ```sh
-pushmute devices                 # list capture + input devices
-pushmute set-mic <node.name>     # choose the physical mic to route from
-pushmute set-key                 # press the key you want as your hotkey
+pushmute devices                     # list capture + input devices
+pushmute set-mic <node.name>         # choose the physical mic to route from
+pushmute set-key [--device <path>]   # press the key (or chord) you want as your hotkey
 ```
 
 Run and control (when not using the systemd service):
@@ -165,26 +162,22 @@ Run and control (when not using the systemd service):
 pushmute run                     # foreground; Ctrl-C restores the default source and tears down
 pushmute status
 pushmute mute / pushmute unmute / pushmute toggle
+pushmute reload                  # re-read and validate config (changing the routed mic still needs a restart)
 pushmute restore                 # reset the default source to its pre-PushMute value
 pushmute doctor                  # environment check
 ```
 
-> **Tray-only controls:** two toggles in the tray menu have no CLI command yet.
-> **Set as system default source** maps to `set_default` in `~/.config/pushmute/config.toml`,
-> so you can change it there and restart the daemon. **Enabled** (turn hotkey routing on/off)
-> is runtime-only — it isn't stored in config and defaults to on at every start. There's no
-> CLI equivalent by design: from the command line, disabling routing just means stopping the
-> daemon (`systemctl --user stop pushmute`, or `Ctrl-C` / `pushmute restore` in the foreground
-> case), which tears routing down entirely.
+> **Tray-only controls:** **Set push-mute as system default source** (the `set_default`
+> key in `config.toml`) and **Enabled** (runtime hotkey routing on/off) have no CLI
+> command. From a shell, disable routing by stopping the daemon instead
+> (`systemctl --user stop pushmute`, or `Ctrl-C` / `pushmute restore` in the foreground case).
 
 ## Desktop support
 
-PushMute needs **PipeWire** at runtime — the default audio stack on every modern desktop
-distro. For the icon and its menu it also wants a **tray that speaks the StatusNotifierItem
-(SNI) spec**, but that's optional: without a tray, almost every control is available from the
-[command line](#command-line-control) (see the note there for the two tray-only toggles). The hotkey comes straight from `evdev`, so the
-compositor — X11 or Wayland — doesn't matter. The only thing that varies between desktops
-is the tray:
+The only thing that varies between desktops is the tray. PipeWire is the default audio
+stack everywhere, and the hotkey comes from `evdev`, so the compositor — X11 or Wayland —
+doesn't matter. Without a tray, drive PushMute from the
+[command line](#command-line-control) instead.
 
 | Desktop | Audio stack | Tray | Notes |
 |---|---|---|---|
