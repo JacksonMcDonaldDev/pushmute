@@ -18,6 +18,14 @@ there while silencing everything else.
 
 I find this most useful for continuing to use my voice transcription app (shoutout [Handy](https://github.com/cjpais/Handy)!) while sharing an open comms space with co-workers or friends, and keeping the channels separate and convenient.
 
+It isn't tied to any desktop or window manager — it runs on any modern Linux desktop with
+PipeWire, under X11 or Wayland (the hotkey is read straight from `evdev`). A system tray is
+**optional**: it adds a configuration menu, but almost everything it offers is also a CLI
+command, so tray-less and headless setups work fine. With a tray, KDE and waybar (Hyprland/Sway) work
+out of the box and GNOME needs one extension.
+
+
+
 ## Requirements
 
 - **PipeWire + WirePlumber** — the runtime dependency. PushMute drives the stock
@@ -28,9 +36,10 @@ I find this most useful for continuing to use my voice transcription app (shouto
   ```sh
   sudo usermod -aG input "$USER"   # log out and back in to apply
   ```
-- **An SNI-capable tray** — for the icon and its menu. Native on waybar (Hyprland/Sway)
-  and KDE Plasma; stock GNOME and Pop!_OS need the AppIndicator extension. See
-  [Desktop support](#desktop-support).
+- **An SNI-capable tray** *(optional)* — for the tray icon and its menu. Without one you
+  can still drive almost everything from the [command line](#command-line-control). Native on KDE
+  Plasma and waybar (Hyprland/Sway); stock GNOME and Pop!_OS need the AppIndicator
+  extension. See [Desktop support](#desktop-support).
 
 ## Install
 
@@ -103,6 +112,7 @@ Once PushMute is running, click its **tray icon** — the menu is the whole cont
 - **Rebind hotkey…** — press the key or chord you want to mute with.
 - **Run on startup** — start PushMute on every login (off by default).
 - **Enabled** — toggle routing on or off.
+- **Set as system default source** — toggles whether pushmute sets itself as the system default mic.
 
 Settings are saved to `~/.config/pushmute/config.toml`.
 
@@ -159,13 +169,28 @@ pushmute restore                 # reset the default source to its pre-PushMute 
 pushmute doctor                  # environment check
 ```
 
+> **Tray-only controls:** two toggles in the tray menu have no CLI command yet.
+> **Set as system default source** maps to `set_default` in `~/.config/pushmute/config.toml`,
+> so you can change it there and restart the daemon. **Enabled** (turn hotkey routing on/off)
+> is runtime-only — it isn't stored in config and defaults to on at every start. There's no
+> CLI equivalent by design: from the command line, disabling routing just means stopping the
+> daemon (`systemctl --user stop pushmute`, or `Ctrl-C` / `pushmute restore` in the foreground
+> case), which tears routing down entirely.
+
 ## Desktop support
+
+PushMute needs **PipeWire** at runtime — the default audio stack on every modern desktop
+distro. For the icon and its menu it also wants a **tray that speaks the StatusNotifierItem
+(SNI) spec**, but that's optional: without a tray, almost every control is available from the
+[command line](#command-line-control) (see the note there for the two tray-only toggles). The hotkey comes straight from `evdev`, so the
+compositor — X11 or Wayland — doesn't matter. The only thing that varies between desktops
+is the tray:
 
 | Desktop | Audio stack | Tray | Notes |
 |---|---|---|---|
-| Arch + Hyprland / Sway (`uwsm`) | PipeWire ✓ | waybar SNI ✓ | Primary target |
-| Arch + KDE Plasma | PipeWire ✓ | Native SNI ✓ | Works out of the box |
-| Ubuntu 22.04+ / Pop!_OS | PipeWire ✓ | Extension may be needed | Works, some friction |
+| KDE Plasma | PipeWire ✓ | Native SNI ✓ | Works out of the box |
+| waybar (Hyprland / Sway, etc.) | PipeWire ✓ | SNI ✓ | Works out of the box |
+| GNOME (incl. Ubuntu / Pop!_OS) | PipeWire ✓ | Extension needed | See note below |
 
 On stock GNOME the tray needs the **AppIndicator and KStatusNotifierItem Support**
 extension. Ubuntu ships it (`ubuntu-appindicator@ubuntu.com`) pre-enabled; Pop!_OS and
