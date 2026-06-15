@@ -6,7 +6,7 @@
 ![Platform: Linux](https://img.shields.io/badge/platform-Linux%20%2F%20PipeWire-informational)
 ![Status: pre-release](https://img.shields.io/badge/status-v0.1%20pre--release-orange)
 
-**Hold one key to mute every app that uses your default microphone at once** — Discord, Teams,
+**Hold one key to mute your mic from every other app while you use voice to text tools** — Discord, Teams,
 Zoom, your browser, all of it. Let go and they hear you again.
 
 PushMute creates a virtual PipeWire microphone ("PushMute") and makes it your system
