@@ -114,11 +114,16 @@ write_unit() {
 		cat >"$UNIT" <<'EOF'
 [Unit]
 Description=PushMute (selective mic router)
-# Order after the audio stack and the graphical session so the tray (SNI) has a
-# StatusNotifierWatcher to register against on cold boot.
-After=pipewire.service wireplumber.service graphical-session.target
+# Order after the audio stack so the loopback has PipeWire to attach to.
+After=pipewire.service wireplumber.service
 Wants=pipewire.service
-PartOf=graphical-session.target
+# NOTE: WantedBy=default.target (below), NOT graphical-session.target. The latter
+# is only activated by full desktop sessions (GNOME/KDE) or compositors launched
+# via a systemd session manager (e.g. uwsm); a bare Hyprland/sway exec-once
+# session never reaches it, so the unit would stay "enabled" yet never autostart.
+# default.target is reached by every systemd --user instance. The tray tolerates
+# the StatusNotifierWatcher appearing later (see src/tray.rs), so it no longer
+# needs to be ordered after the graphical session to get its icon.
 
 [Service]
 Type=simple
@@ -129,7 +134,7 @@ Restart=on-failure
 RestartSec=2
 
 [Install]
-WantedBy=graphical-session.target
+WantedBy=default.target
 EOF
 		# Heredoc perms follow umask; pin to 0644 like the install -Dm644 branch so a
 		# loose umask can't leave this command-bearing unit group/world-writable.

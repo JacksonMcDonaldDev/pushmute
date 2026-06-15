@@ -215,8 +215,18 @@ impl Tray for PushMuteTray {
 
 /// Publish the tray. Returns `None` (and logs) if no StatusNotifier host is
 /// reachable, so the daemon can still run CLI-only.
+///
+/// `assume_sni_available(true)` makes ksni tolerate the `StatusNotifierWatcher`
+/// being absent at spawn time: instead of failing, it waits and registers when
+/// the watcher (e.g. waybar's tray host) appears. This is what lets the systemd
+/// unit start from `default.target` without ordering after the graphical session
+/// — pushmute can come up before the bar and still get its icon once the bar is
+/// ready. It also means a bar restart/reload re-acquires the icon automatically.
 pub fn spawn(daemon: Arc<Daemon>, tx: Sender<Lifecycle>) -> Option<Handle<PushMuteTray>> {
-    match (PushMuteTray { daemon, tx }).spawn() {
+    match (PushMuteTray { daemon, tx })
+        .assume_sni_available(true)
+        .spawn()
+    {
         Ok(handle) => Some(handle),
         Err(e) => {
             eprintln!("pushmute: tray unavailable: {e}");

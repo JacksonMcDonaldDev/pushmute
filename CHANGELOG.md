@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
+### Fixed
+- Autostart now works under bare Hyprland/sway sessions. The systemd user unit is
+  `WantedBy=default.target` instead of `graphical-session.target` — the latter is
+  never activated by `exec-once`-style compositor sessions, so an "enabled" unit
+  would silently never start on login. The tray now tolerates the
+  `StatusNotifierWatcher` appearing after the daemon starts (ksni
+  `assume_sni_available`), so dropping the graphical-session ordering doesn't risk
+  a missing icon on cold boot.
+
 ## [0.1.0] - 2026-06-14
 
 ### Added
