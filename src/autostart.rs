@@ -1,9 +1,11 @@
 //! Run-on-startup, expressed as the enabled state of the `pushmute` systemd user
 //! unit. We deliberately support only systemd (not an XDG `~/.config/autostart`
-//! entry): the unit is the documented primary path and orders against
-//! `graphical-session.target` so the tray host is ready, whereas the DEs where a
-//! `.desktop` fallback would actually fire (XFCE/MATE) can't render our SNI tray
-//! anyway. Non-systemd sessions add their own `exec pushmute run` instead.
+//! entry): the unit is the documented primary path, and the DEs where a `.desktop`
+//! fallback would actually fire (XFCE/MATE) can't render our SNI tray anyway. The
+//! unit is `WantedBy=default.target` so it autostarts in *any* systemd --user
+//! session — including bare Hyprland/sway, which never reach
+//! `graphical-session.target`. Non-systemd sessions add their own
+//! `exec pushmute run` instead.
 
 use anyhow::{bail, Context, Result};
 use std::process::Command;

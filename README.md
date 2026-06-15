@@ -128,12 +128,13 @@ install -Dm644 pushmute.service ~/.config/systemd/user/pushmute.service
 systemctl --user start pushmute      # run now; add `enable` to also start on login
 ```
 
-> **Hyprland users:** launch your session via [`uwsm`](https://github.com/Vladimir-csp/uwsm).
-> It activates `graphical-session.target`, which the unit orders against — without it the
-> tray may start before the graphical session is ready and silently fail to appear.
+> **Hyprland/sway users:** the unit is `WantedBy=default.target`, so it autostarts in any
+> `systemd --user` session — including bare `exec-once` setups that never activate
+> `graphical-session.target`. The tray waits for your bar's tray host (e.g. waybar) to
+> appear and registers when it does, so it doesn't matter if pushmute starts first.
 
-> **Non-systemd sessions:** if your session doesn't activate `graphical-session.target`,
-> the unit won't fire on login. Add your compositor's own autostart line instead — e.g. in
+> **Non-systemd sessions:** if you don't run a `systemd --user` instance at all, the unit
+> won't fire on login. Add your compositor's own autostart line instead — e.g. in
 > `hyprland.conf`:
 > ```
 > exec-once = ~/.local/bin/pushmute run
